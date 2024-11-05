@@ -1,4 +1,4 @@
-resource "aws_security_group" "TuCocheDanaBot_Pro_SG" {
+resource "aws_security_group" "Telegram_SG" {
   name        = "TuCocheDanaBot-Pro-SG"
   description = "Security group for TuCocheDanaBot-Pro allowing specific IP ranges on certain ports"
   vpc_id      = "vpc-xxxxxxxx"  # Replace with your actual VPC ID
