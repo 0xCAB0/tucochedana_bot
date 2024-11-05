@@ -1,7 +1,3 @@
-provider "aws" {
-  region = "eu-central-1"  # specify your region here
-}
-
 resource "aws_instance" "TuCocheDanaBot_Pro" {
   ami                         = "ami-0084a47cc718c111a"
   instance_type               = "t2.micro"
@@ -13,11 +9,7 @@ resource "aws_instance" "TuCocheDanaBot_Pro" {
   }
 
   # Network Interface
-#   network_interface {
-#     device_index          = 0
-#     associate_public_ip_address = true
-#     security_groups       = ["sg-0e650299d116e5c7d"]
-#   }
+
 
   # Block Device Mapping
   root_block_device {
