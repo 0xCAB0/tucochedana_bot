@@ -1,0 +1,36 @@
+name: Rust Code Formatting
+
+on:
+  pull_request:
+      paths:
+      - 'src/*'         
+      - 'Cargo.toml'     
+      - 'Cargo.lock'
+  push:
+      branches:
+        - master
+      paths:
+      - 'src/*'         
+      - 'Cargo.toml'     
+      - 'Cargo.lock'  
+
+jobs:
+  rustfmt:
+    name: Rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          profile: minimal
+          components: rustfmt
+
+      - name: Check format
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: -- --check --verbose

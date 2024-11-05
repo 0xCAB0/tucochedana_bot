@@ -23,7 +23,6 @@ pub mod db;
 
 pub mod telegram {
     pub mod client;
-    pub mod handler;
 }
 
 pub mod update_handler {
