@@ -13,7 +13,7 @@ lazy_static! {
         std::env::var("POSTGRES_USER").unwrap_or(String::from("postgres"));
     pub static ref POSTGRES_PASSWORD: String =
         std::env::var("POSTGRES_PASSWORD").unwrap_or(String::from("postgres"));
-    pub static ref DB_URI: String = {
+    pub static ref DATABASE_URL: String = {
             dotenvy::dotenv().ok(); // Load environment variables from .env file
             format!(
                 "postgres://{}:{}@localhost/{}?sslmode=disable",
