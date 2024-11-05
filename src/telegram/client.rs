@@ -6,6 +6,7 @@ use frankenstein::AnswerPreCheckoutQueryParams;
 use frankenstein::AsyncApi;
 use frankenstein::AsyncTelegramApi;
 use frankenstein::ChatAction;
+use frankenstein::DeleteWebhookParams;
 use frankenstein::EditMessageReplyMarkupParams;
 use frankenstein::EditMessageTextParams;
 use frankenstein::FileUpload;
@@ -23,12 +24,13 @@ use frankenstein::SendChatActionParams;
 use frankenstein::SendMessageParams;
 use frankenstein::SendStickerParams;
 use frankenstein::SendVideoParams;
+use frankenstein::SetWebhookParams;
 use frankenstein::StickerSet;
 use frankenstein::Update;
+use frankenstein::WebhookInfo;
 use std::collections::VecDeque;
 use thiserror::Error;
 use tokio::sync::OnceCell;
-
 
 use std::fmt::Debug;
 
@@ -76,12 +78,8 @@ impl ApiClient {
         let update_params = GetUpdatesParams::builder()
             .allowed_updates(vec![
                 AllowedUpdate::Message,
-                AllowedUpdate::ChannelPost,
+                //AllowedUpdate::ChannelPost,
                 AllowedUpdate::CallbackQuery,
-                // updates de los pagos
-                AllowedUpdate::PreCheckoutQuery,
-                AllowedUpdate::ShippingQuery,
-                // me cago en mi vida lo que me ha costado darme cuenta xd
             ])
             .build();
 
@@ -92,6 +90,26 @@ impl ApiClient {
             update_params,
             buffer,
         }
+    }
+
+    pub async fn set_webhook(&self, url: &String) -> Result<MethodResponse<bool>, ApiError> {
+        let params: SetWebhookParams = SetWebhookParams::builder()
+            .url(url)
+            .allowed_updates(self.update_params.allowed_updates.clone().unwrap())
+            .build();
+        Ok(self.telegram_client.set_webhook(&params).await?)
+    }
+
+    pub async fn remove_webhook(&self) -> Result<MethodResponse<bool>, ApiError> {
+        let params: DeleteWebhookParams = DeleteWebhookParams::builder()
+            .drop_pending_updates(false)
+            .build();
+
+        Ok(self.telegram_client.delete_webhook(&params).await?)
+    }
+
+    pub async fn get_webhook_info(&self) -> Result<MethodResponse<WebhookInfo>, ApiError> {
+        Ok(self.telegram_client.get_webhook_info().await?)
     }
 
     pub async fn next_update(&mut self) -> Option<Update> {
