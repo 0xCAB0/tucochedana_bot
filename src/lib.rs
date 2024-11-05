@@ -14,16 +14,14 @@ lazy_static! {
     pub static ref POSTGRES_PASSWORD: String =
         std::env::var("POSTGRES_PASSWORD").unwrap_or(String::from("postgres"));
     pub static ref DATABASE_URL: String = {
-            dotenvy::dotenv().ok(); // Load environment variables from .env file
-            format!(
-                "postgres://{}:{}@localhost/{}?sslmode=disable",
-                *POSTGRES_USER, *POSTGRES_PASSWORD, *POSTGRES_DB
-            )
-        };
-    pub static ref API_URL: String =
-        std::env::var("API_URL").expect("API_URL not set");
-    pub static ref BOT_NAME: String =
-        std::env::var("BOT_NAME").expect("BOT_NAME not set");
+        format!(
+            "postgres://{}:{}@localhost/{}?sslmode=disable",
+            *POSTGRES_USER, *POSTGRES_PASSWORD, *POSTGRES_DB
+        )
+    };
+    pub static ref API_URL: String = std::env::var("API_URL").expect("API_URL not set");
+    pub static ref WEBHOOK_URL: String = std::env::var("WEBHOOK_URL").expect("WEBHOOK_URL not set");
+    pub static ref BOT_NAME: String = std::env::var("BOT_NAME").expect("BOT_NAME not set");
 }
 
 pub mod tucochedana {
