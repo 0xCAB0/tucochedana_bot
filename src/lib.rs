@@ -1,7 +1,9 @@
 use db::BotDbError;
 use fang::{FangError, ToFangError};
 use lazy_static::lazy_static;
-use std::fmt::Debug;
+use openssl::error;
+use reqwest::StatusCode;
+use std::fmt::{self, Debug};
 use telegram::client::ApiError;
 use thiserror::Error;
 lazy_static! {
@@ -51,5 +53,32 @@ pub enum BotError {
     #[error(transparent)]
     ReqwestError(#[from] reqwest::Error),
     #[error(transparent)]
-    SerdeJsonError(#[from] serde_json::Error),
+    SerdeJsonError(#[from] SerdeJSONError),
+    #[error("Failed")]
+    TuCocheDanaError(StatusCode, String),
+}
+
+#[derive(Debug, Error)]
+pub struct SerdeJSONError {
+    raw_json: String,
+    serde_error: serde_json::Error,
+}
+
+impl SerdeJSONError {
+    fn new(raw_json: String, serde_error: serde_json::Error) -> Self {
+        SerdeJSONError {
+            raw_json,
+            serde_error,
+        }
+    }
+}
+
+impl fmt::Display for SerdeJSONError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "JSON: {}, SerdeError: {}",
+            self.raw_json, self.serde_error
+        )
+    }
 }
