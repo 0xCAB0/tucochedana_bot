@@ -1,7 +1,6 @@
 use db::BotDbError;
 use fang::{FangError, ToFangError};
 use lazy_static::lazy_static;
-use openssl::error;
 use reqwest::StatusCode;
 use std::fmt::{self, Debug};
 use telegram::client::ApiError;

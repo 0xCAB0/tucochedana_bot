@@ -8,5 +8,5 @@ async fn main() {
     pretty_env_logger::init_timed();
 
     let client = ApiClient::api_client().await.clone();
-    let _ = client.set_webhook(&WEBHOOK_URL).await;
+    let _ = client.set_webhook(&WEBHOOK_URL, None).await;
 }

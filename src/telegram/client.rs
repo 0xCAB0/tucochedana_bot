@@ -92,11 +92,23 @@ impl ApiClient {
         }
     }
 
-    pub async fn set_webhook(&self, url: &String) -> Result<MethodResponse<bool>, ApiError> {
-        let params: SetWebhookParams = SetWebhookParams::builder()
-            .url(url)
-            .allowed_updates(self.update_params.allowed_updates.clone().unwrap())
-            .build();
+    pub async fn set_webhook(
+        &self,
+        url: &String,
+        ip_address: Option<String>,
+    ) -> Result<MethodResponse<bool>, ApiError> {
+        let params: SetWebhookParams = match ip_address {
+            Some(ip) => SetWebhookParams::builder()
+                .url(url)
+                .ip_address(ip)
+                .allowed_updates(self.update_params.allowed_updates.clone().unwrap())
+                .build(),
+            None => SetWebhookParams::builder()
+                .url(url)
+                .allowed_updates(self.update_params.allowed_updates.clone().unwrap())
+                .build(),
+        };
+
         Ok(self.telegram_client.set_webhook(&params).await?)
     }
 
