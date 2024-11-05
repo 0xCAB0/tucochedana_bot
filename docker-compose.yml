@@ -1,0 +1,52 @@
+volumes:
+  db-data:
+    name: horus-bot-data
+    external: true
+  redis_volume:
+    name: redis_volume
+    external : true
+
+services:
+  bot:
+    depends_on:
+      - db
+      - redis
+    build: ./
+    env_file: .env
+    volumes: 
+      - ${CERT_FILE_TLS_MACHINE}:${CERT_FILE_TLS}
+    command: bash -c "sleep 1.5 && /bot/start.sh"
+    links:
+      - "db:database"
+      - "redis:redis"
+  db:
+    image: postgres:14.5
+    restart: always
+    ports:
+      - 5434:5432
+    volumes:
+      - db-data:/var/lib/postgres/data
+    environment:
+      - POSTGRES_DB=horus-bot
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+  redis:
+    image: redis:latest
+    container_name: redis
+    restart: always
+    volumes:
+      - redis_volume:/data
+    ports:
+      - 6379:6379
+
+  # Redis dashboard (Optional)
+  redis_insight: 
+    image: redislabs/redisinsight:latest
+    container_name: redis_insight
+    restart: always
+    expose:
+      - 5540
+    ports:
+      - "5540:5540"
+    volumes:
+      - redis_volume:/db
