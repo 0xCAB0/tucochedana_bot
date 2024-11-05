@@ -45,14 +45,14 @@ COPY --from=builder /etc/group /etc/group
 WORKDIR /bot
 
 # Copy our build
-COPY --from=builder /bot/target/release/horus-bot ./
+COPY --from=builder /bot/target/release/${BOT_NAME} ./
 
 COPY --from=builder /bot/docker/start.sh ./
 
 COPY --from=builder /usr/local/cargo/bin/diesel ./
 COPY --from=builder /bot/migrations/ ./migrations/
 
-COPY --from=builder /bot/resources/ ./resources/
+# COPY --from=builder /bot/resources/ ./resources/
 
 
 # Use an unprivileged user.
