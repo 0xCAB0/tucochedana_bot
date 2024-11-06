@@ -15,7 +15,7 @@ impl _TuCocheDanaClient {
     async fn _get_vehicle_by_plate(&self, plate: String) -> Result<(), BotError> {
         let result = self
             .client
-            .get(&API_URL.to_string())
+            .get(API_URL.to_string())
             .query(&[("matricula", &plate)])
             .send()
             .await?;

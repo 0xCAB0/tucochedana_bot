@@ -8,12 +8,12 @@ impl UpdateProcessor {
             .unwrap()
             .split_ascii_whitespace();
         iter.next();
-        let id_brand = iter.next().unwrap();
+
         Ok(())
     }
 
     pub async fn add_vehicle_message(&self) -> Result<(), BotError> {
-        let plate = &self.text;
+        let _plate = &self.text;
         Ok(())
     }
 }

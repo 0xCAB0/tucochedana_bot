@@ -23,7 +23,7 @@ impl AsyncRunnable for FetchTask {
         // Here we should do one deliver.
         let repo = Repo::repo().await?;
 
-        let telegram = ApiClient::api_client().await;
+        let _telegram = ApiClient::api_client().await;
 
         let chat_raw = repo.get_chat(&self.chat_id).await;
 
@@ -33,7 +33,7 @@ impl AsyncRunnable for FetchTask {
                 queueable.remove_task_by_metadata(self).await?;
                 Ok(())
             }
-            Ok(chat) => {
+            Ok(_chat) => {
                 // `chat` is active, proceed with the chat result
                 // You can now use `chat` here as needed
                 Ok(())

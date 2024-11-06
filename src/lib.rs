@@ -89,7 +89,7 @@ pub struct SerdeJSONError {
 }
 
 impl SerdeJSONError {
-    fn new(raw_json: String, serde_error: serde_json::Error) -> Self {
+    fn _new(raw_json: String, serde_error: serde_json::Error) -> Self {
         SerdeJSONError {
             raw_json,
             serde_error,
