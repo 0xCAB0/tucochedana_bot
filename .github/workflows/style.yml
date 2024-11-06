@@ -8,7 +8,7 @@ on:
       - 'Cargo.lock'
   push:
       branches:
-        - master
+        - main
       paths:
       - 'src/*'         
       - 'Cargo.toml'     
