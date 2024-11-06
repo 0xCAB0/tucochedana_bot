@@ -14,6 +14,7 @@ use frankenstein::GetStickerSetParams;
 use frankenstein::GetUpdatesParams;
 use frankenstein::InlineKeyboardButton;
 use frankenstein::InlineKeyboardMarkup;
+use frankenstein::InputFile;
 use frankenstein::Message;
 use frankenstein::MessageOrBool;
 use frankenstein::MethodResponse;
@@ -29,6 +30,8 @@ use frankenstein::StickerSet;
 use frankenstein::Update;
 use frankenstein::WebhookInfo;
 use std::collections::VecDeque;
+use std::path::PathBuf;
+use std::str::FromStr;
 use thiserror::Error;
 use tokio::sync::OnceCell;
 
@@ -96,11 +99,23 @@ impl ApiClient {
         &self,
         url: &String,
         ip_address: Option<String>,
+        certificate_path: Option<String>,
     ) -> Result<MethodResponse<bool>, ApiError> {
+        let file: Option<InputFile> = if let Some(path) = certificate_path {
+            Some(
+                InputFile::builder()
+                    .path(PathBuf::from_str(path.as_str()).unwrap())
+                    .build(),
+            )
+        } else {
+            None
+        };
+
         let params: SetWebhookParams = match ip_address {
             Some(ip) => SetWebhookParams::builder()
                 .url(url)
                 .ip_address(ip)
+                .maybe_certificate(file)
                 .allowed_updates(self.update_params.allowed_updates.clone().unwrap())
                 .build(),
             None => SetWebhookParams::builder()

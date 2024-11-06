@@ -1,4 +1,6 @@
-use tu_coche_dana_bot::{server::app, telegram::client::ApiClient, WEBHOOK_PORT, WEBHOOK_URL};
+use tu_coche_dana_bot::{
+    server::app, telegram::client::ApiClient, WEBHOOK_CERT, WEBHOOK_PORT, WEBHOOK_URL,
+};
 
 #[tokio::main]
 async fn main() {
@@ -13,7 +15,10 @@ async fn main() {
         443 | 80 => format!("{}/webhook", *WEBHOOK_URL), //Debe estar bien formateado (http o https)
         _ => format!("{}:{}/webhook", *WEBHOOK_URL, *WEBHOOK_PORT),
     };
-    let response = telegram.set_webhook(&webhook, None).await.unwrap();
+    let response = telegram
+        .set_webhook(&webhook, None, WEBHOOK_CERT.clone())
+        .await
+        .unwrap();
     if response.ok && response.result {
         log::info!("Setted Telegram webhook at URL {}", webhook);
     } else {

@@ -24,6 +24,7 @@ lazy_static! {
     };
     pub static ref API_URL: String = std::env::var("API_URL").expect("API_URL not set");
     pub static ref WEBHOOK_URL: String = std::env::var("WEBHOOK_URL").expect("WEBHOOK_URL not set");
+    pub static ref WEBHOOK_CERT: Option<String> = std::env::var("WEBHOOK_CERT").ok();
     pub static ref WEBHOOK_PORT: u32 = std::env::var("WEBHOOK_PORT")
         .expect("WEBHOOK_PORT not set")
         .parse()
