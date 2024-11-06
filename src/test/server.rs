@@ -44,7 +44,7 @@ async fn test_webhook_dispatch() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/")
+                .uri("/webhook")
                 .header("Content-Type", "application/json")
                 .header("Cache-Control", "no-cache")
                 .body(serde_json::to_string(&update).unwrap())
