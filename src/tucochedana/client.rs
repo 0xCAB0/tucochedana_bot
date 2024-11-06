@@ -1,4 +1,4 @@
-use reqwest::{Client, StatusCode};
+use frankenstein::reqwest::{Client, StatusCode};
 
 use crate::{BotError, API_URL};
 
@@ -8,7 +8,7 @@ struct _TuCocheDanaClient {
 
 impl _TuCocheDanaClient {
     fn _new() -> Self {
-        let client = reqwest::ClientBuilder::new().build().unwrap();
+        let client = frankenstein::reqwest::ClientBuilder::new().build().unwrap();
 
         _TuCocheDanaClient { client }
     }

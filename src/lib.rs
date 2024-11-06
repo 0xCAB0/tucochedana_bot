@@ -1,7 +1,7 @@
 use db::BotDbError;
 use fang::{FangError, ToFangError};
+use frankenstein::reqwest::StatusCode;
 use lazy_static::lazy_static;
-use reqwest::StatusCode;
 use std::fmt::{self, Debug};
 use telegram::client::ApiError;
 use thiserror::Error;
@@ -45,6 +45,8 @@ pub mod tucochedana {
 
 pub mod db;
 
+pub mod test;
+
 pub mod telegram {
     pub mod client;
 }
@@ -69,7 +71,7 @@ pub enum BotError {
     #[error(transparent)]
     DbError(#[from] BotDbError),
     #[error(transparent)]
-    ReqwestError(#[from] reqwest::Error),
+    ReqwestError(#[from] frankenstein::reqwest::Error),
     #[error(transparent)]
     SerdeJsonError(#[from] SerdeJSONError),
     #[error("Api returned code {0}: {1}")]
