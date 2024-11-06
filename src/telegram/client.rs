@@ -101,15 +101,11 @@ impl ApiClient {
         ip_address: Option<String>,
         certificate_path: Option<String>,
     ) -> Result<MethodResponse<bool>, ApiError> {
-        let file: Option<InputFile> = if let Some(path) = certificate_path {
-            Some(
-                InputFile::builder()
-                    .path(PathBuf::from_str(path.as_str()).unwrap())
-                    .build(),
-            )
-        } else {
-            None
-        };
+        let file: Option<InputFile> = certificate_path.map(|path| {
+            InputFile::builder()
+                .path(PathBuf::from_str(path.as_str()).unwrap())
+                .build()
+        });
 
         let params: SetWebhookParams = match ip_address {
             Some(ip) => SetWebhookParams::builder()
