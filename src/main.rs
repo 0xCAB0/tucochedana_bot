@@ -6,14 +6,23 @@ async fn main() {
     dotenvy::dotenv().ok();
     // Logger
     pretty_env_logger::init_timed();
+
+    // Webhook setup
+    let telegram = ApiClient::api_client().await;
+    let webhook = match *WEBHOOK_PORT {
+        443 | 80 => format!("{}/webhook", WEBHOOK_URL.to_string()), //Debe estar bien formateado (http o https)
+        _ => format!("{}:{}/webhook", &WEBHOOK_URL.to_string(), *WEBHOOK_PORT),
+    };
+    let response = telegram.set_webhook(&webhook, None).await.unwrap();
+    if response.ok && response.result {
+        log::info!("Setted Telegram webhook at URL {}", webhook);
+    } else {
+        log::error!("{:?}", response.description);
+    }
     // Http Server
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", *WEBHOOK_PORT))
         .await
         .unwrap();
-
     log::info!("listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app()).await.unwrap();
-    // Instanciate Telegram client
-    let telegram = ApiClient::api_client().await;
-    let _ = telegram.set_webhook(&WEBHOOK_URL, None).await;
 }

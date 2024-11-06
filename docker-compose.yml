@@ -1,7 +1,7 @@
 volumes:
   db-data:
-    # name: horus-bot-data
-    # external: true
+    name: bot-data
+    external: true
 
 services:
   bot:
