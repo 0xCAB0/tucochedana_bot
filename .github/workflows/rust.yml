@@ -107,7 +107,7 @@ jobs:
     name: Build and Push image to DockerHub.
     runs-on: ubuntu-latest
     needs: test
-    #if: github.ref == 'refs/heads/master'
+    #if: github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout code
@@ -135,7 +135,7 @@ jobs:
     name: SSH to Server and Pull Changes
     runs-on: ubuntu-latest
     needs: build-container
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/main'
     continue-on-error: true
     steps:
       - name: Run script
