@@ -6,5 +6,5 @@ pub enum ClientState {
     #[postgres(name = "initial")]
     Initial,
     #[postgres(name = "edit_name")]
-    EditName,
+    AddVehicle,
 }

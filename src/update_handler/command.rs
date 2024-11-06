@@ -10,7 +10,8 @@ use super::process_update_task::UpdateProcessor;
 pub enum Command {
     AddVehicle,
     MyAddedVehicles,
-    FindVehicle,
+    StartFetch,
+    StopFetch,
     Help,
     Start,
     StartBack,
@@ -29,8 +30,9 @@ impl FromStr for Command {
             "/help" => Command::Help,
             "/start_back" => Command::StartBack,
             "/add_vehicle" => Command::AddVehicle,
-            "/my_added_vehicles" => Command::AddVehicle,
-            "/find_vehicle" => Command::FindVehicle,
+            "/get_my_vehicles" => Command::MyAddedVehicles,
+            "/start_fetch" => Command::StartFetch,
+            "/stop_fetch" => Command::StopFetch,
             _ => Command::UnknownCommand(command_str.to_string()),
         };
 
@@ -41,6 +43,9 @@ impl FromStr for Command {
 pub mod backend {
     pub mod add_vehicle;
     pub mod cancel;
+    pub mod get_vehicles;
+    pub mod start_fetch;
+    pub mod stop_fetch;
 }
 pub mod frontend {
     pub mod add_vehicle;

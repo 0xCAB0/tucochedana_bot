@@ -212,7 +212,7 @@ impl UpdateProcessor {
         match self.chat.state {
             ClientState::Initial => self.process_initial().await,
 
-            ClientState::EditName => {
+            ClientState::AddVehicle => {
                 if let Command::UnknownCommand(_) = self.command {
                     //self.edit_profile_name().await?;
                 }
@@ -227,20 +227,33 @@ impl UpdateProcessor {
                 self.help_menu().await?;
                 Ok(TaskToManage::NoTask)
             }
+
             Command::Start => {
                 self.start_message(SELECT_COMMAND_TEXT).await?;
                 Ok(TaskToManage::NoTask)
             }
+
             Command::StartBack => {
                 self.start_message(SELECT_COMMAND_TEXT).await?;
                 Ok(TaskToManage::NoTask)
             }
+
             Command::AddVehicle => {
                 if let Command::UnknownCommand(_) = self.command {
                     self.add_vehicle_message().await?;
                 }
                 Ok(TaskToManage::NoTask)
             }
+
+            Command::MyAddedVehicles => {
+                self.get_vehicles().await?;
+                Ok(TaskToManage::NoTask)
+            }
+
+            Command::StartFetch => self.start_fetch().await,
+
+            Command::StopFetch => self.stop_fetch().await,
+
             Command::UnknownCommand(string) => {
                 self.unknown_command(string).await?;
                 Ok(TaskToManage::NoTask)
