@@ -6,7 +6,7 @@ volumes:
 services:
   bot:
     container_name: tu-dana-coche
-    image: tu-dana-coche:latest
+    image: thal0s/tu-dana-coche:latest
     depends_on:
       - db
     build: ./
