@@ -1,2 +1,2 @@
 #[cfg(test)]
-pub mod webhook;
+pub mod server;

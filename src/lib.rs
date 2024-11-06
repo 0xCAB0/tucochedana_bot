@@ -39,6 +39,8 @@ lazy_static! {
         .expect("The number of retries should be 0<=N<=255");
 }
 
+pub mod server;
+
 pub mod tucochedana {
     pub mod client;
 }
