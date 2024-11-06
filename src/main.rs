@@ -10,8 +10,8 @@ async fn main() {
     // Webhook setup
     let telegram = ApiClient::api_client().await;
     let webhook = match *WEBHOOK_PORT {
-        443 | 80 => format!("{}/webhook", WEBHOOK_URL.to_string()), //Debe estar bien formateado (http o https)
-        _ => format!("{}:{}/webhook", &WEBHOOK_URL.to_string(), *WEBHOOK_PORT),
+        443 | 80 => format!("{}/webhook", *WEBHOOK_URL), //Debe estar bien formateado (http o https)
+        _ => format!("{}:{}/webhook", *WEBHOOK_URL, *WEBHOOK_PORT),
     };
     let response = telegram.set_webhook(&webhook, None).await.unwrap();
     if response.ok && response.result {
