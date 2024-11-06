@@ -3,11 +3,26 @@ use tokio::sync::OnceCell;
 
 use crate::DATABASE_URL;
 
-use super::{model::chat::Chat, BotDbError};
+use super::{
+    model::{chat::Chat, client_state::ClientState},
+    BotDbError,
+};
 
 static REPO: OnceCell<Repo> = OnceCell::const_new();
 
-pub struct Repo{
+const INSERT_CHAT: &str = include_str!("queries/insert_chat.sql");
+const DELETE_CHAT: &str = include_str!("queries/delete_chat.sql");
+const GET_CHAT: &str = include_str!("queries/get_chat.sql");
+const GET_VEHICLES_BY_CHAT_ID: &str = include_str!("queries/get_vehicles_by_chat_id.sql");
+const MODIFY_STATE: &str = include_str!("queries/modify_state.sql");
+const MODIFY_ACTIVE: &str = include_str!("queries/modify_active.sql");
+const CONCAT_TO_SELECTED_PROFILES: &str = include_str!("queries/concat_to_selected_profiles.sql");
+const DELETE_VEHICLE: &str = include_str!("queries/delete_vehicle.sql");
+const DELETE_TASK_BY_PROFILE_ID: &str = include_str!("queries/delete_all_tasks_by_profile_id.sql");
+const DELETE_FETCH_TASK_BY_PROFILE_ID: &str =
+    include_str!("queries/delete_fetch_tasks_by_profile_id.sql");
+
+pub struct Repo {
     pool: Pool<PostgresConnectionManager<NoTls>>,
 }
 
@@ -20,10 +35,7 @@ impl Repo {
         REPO.get_or_try_init(Repo::new).await
     }
 
-    async fn pool(
-        url: &str,
-    ) -> Result<Pool<PostgresConnectionManager<NoTls>>, BotDbError> {
-
+    async fn pool(url: &str) -> Result<Pool<PostgresConnectionManager<NoTls>>, BotDbError> {
         let pg_mgr = PostgresConnectionManager::new_from_stringlike(url, NoTls)?;
 
         Ok(Pool::builder().build(pg_mgr).await?)
@@ -77,19 +89,24 @@ impl Repo {
         todo!()
     }
 
-    pub fn calculate_next_delivery(cron_expression: &str) -> Result<chrono::DateTime<chrono::Utc>, super::BotDbError> {
+    pub fn calculate_next_delivery(
+        cron_expression: &str,
+    ) -> Result<chrono::DateTime<chrono::Utc>, super::BotDbError> {
         todo!()
     }
 
-    pub async fn get_user(&self, chat_id: &i64) -> Result<Chat, super::BotDbError> {
-    todo!()
-    }
-
-    pub async fn get_rows(&self, query: String) -> Result<Vec<bb8_postgres::tokio_postgres::Row>, super::BotDbError> {
+    pub async fn get_chat(&self, chat_id: &i64) -> Result<Chat, super::BotDbError> {
         todo!()
     }
 
-    pub async fn insert_user(
+    pub async fn get_rows(
+        &self,
+        query: String,
+    ) -> Result<Vec<bb8_postgres::tokio_postgres::Row>, super::BotDbError> {
+        todo!()
+    }
+
+    pub async fn insert_chat(
         &self,
         chat_id: &i64,
         user_id: u64,
@@ -99,44 +116,28 @@ impl Repo {
         todo!()
     }
 
-    pub async fn insert_profile(&self, chat_id: &i64) -> Result<i32, super::BotDbError> {
-        todo!()
-    }
-
     pub async fn delete_chat(&self, chat_id: &i64) -> Result<u64, super::BotDbError> {
         todo!()
     }
 
-    pub async fn modify_profile_name(
-        &self,
-        profile_id: &i32,
-        profile_name: &'_ str,
-    ) -> Result<u64, super::BotDbError> {
-        todo!()
-    }
-
-    pub async fn modify_offset(&self, chat_id: &i64, offset: i8) -> Result<u64, super::BotDbError> {
-        todo!()
-    }
-
-    pub async fn modify_selected(&self, chat_id: &i64, new_selected: String)
-        -> Result<u64, super::BotDbError> {
-        todo!()
-    }
-
-    pub async fn modify_selected_profiles(
+    pub async fn modify_state(
         &self,
         chat_id: &i64,
-        profiles: Option<&str>,
-    ) -> Result<u64, super::BotDbError> {
-        todo!()
+        new_state: ClientState,
+    ) -> Result<u64, BotDbError> {
+        let connection = self.pool.get().await?;
+
+        let n = connection
+            .execute(MODIFY_STATE, &[&new_state, chat_id])
+            .await?;
+        Ok(n)
     }
 
-    pub async fn concat_to_selected_profiles(
-        &self,
-        chat_id: &i64,
-        profiles: &str,
-    ) -> Result<u64, super::BotDbError> {
-        todo!()
+    pub async fn delete_tasks_by_chat_id(&self, chat_id: &'_ str) -> Result<u64, BotDbError> {
+        let connection = self.pool.get().await?;
+        let n = connection
+            .execute(DELETE_TASK_BY_PROFILE_ID, &[&chat_id])
+            .await?;
+        Ok(n)
     }
 }

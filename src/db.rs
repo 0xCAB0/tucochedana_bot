@@ -18,12 +18,12 @@ pub enum BotDbError {
     NoTimestampsError,
 }
 
-
 pub use repo::Repo;
 
 pub mod repo;
 
-pub mod model{
-    pub mod vehicle;
+pub mod model {
     pub mod chat;
+    pub mod client_state;
+    pub mod vehicle;
 }

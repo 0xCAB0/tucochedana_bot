@@ -1,19 +1,18 @@
-use frankenstein::BASE_API_URL;
 use reqwest::{Client, StatusCode};
 
 use crate::{BotError, API_URL};
 
-struct TuCocheDanaClient {
+struct _TuCocheDanaClient {
     client: Client,
 }
 
-impl TuCocheDanaClient {
-    fn new() -> Self {
+impl _TuCocheDanaClient {
+    fn _new() -> Self {
         let client = reqwest::ClientBuilder::new().build().unwrap();
 
-        TuCocheDanaClient { client }
+        _TuCocheDanaClient { client }
     }
-    async fn get_vehicle_by_plate(&self, plate: String) -> Result<(), BotError> {
+    async fn _get_vehicle_by_plate(&self, plate: String) -> Result<(), BotError> {
         let result = self
             .client
             .get(&API_URL.to_string())

@@ -1,7 +1,9 @@
+use frankenstein::{InlineKeyboardButton, InlineKeyboardMarkup};
 
-use crate::BOT_NAME;
+use crate::{db::model::client_state::ClientState, BotError, BOT_NAME};
 use std::str::FromStr;
 
+use super::process_update_task::UpdateProcessor;
 
 /// Avalible bots commands as a Enum
 #[derive(Debug, Eq, PartialEq, Clone)]
@@ -37,112 +39,82 @@ impl FromStr for Command {
 }
 
 pub mod backend {
+    pub mod add_vehicle;
     pub mod cancel;
 }
 pub mod frontend {
-    pub mod start;
     pub mod add_vehicle;
+    pub mod help;
+    pub mod list_vehicles;
+    pub mod start;
 }
 
-// impl UpdateProcessor {
-//     pub async fn unknown_command(&self, command: &str) -> Result<(), BotError> {
-//         self.cancel(Some(format!(
-//             "Comando '{}' desconocido. Ejecuta /start para ver los comandos disponibles",
-//             command
-//         )))
-//         .await?;
-//         Ok(())
-//     }
+impl UpdateProcessor {
+    pub async fn return_to_initial(&self) -> Result<(), BotError> {
+        self.repo
+            .modify_state(&self.chat.id, ClientState::Initial)
+            .await?;
 
-//     /*async fn not_number_message(&self) -> Result<(), BotError> {
-//         self.cancel(Some(
-//             "That's not a positive number in the range. The command was cancelled".to_string(),
-//         ))
-//         .await
-//     }*/
+        Ok(())
+    }
 
-//     pub fn texts_to_buttons<S: AsRef<str> + Into<String>, S2: AsRef<str> + Into<String>>(
-//         rows: Vec<Vec<(S, S2)>>,
-//         url: bool,
-//     ) -> InlineKeyboardMarkup {
-//         if url {
-//             let vec = rows
-//                 .into_iter()
-//                 .map(|row| {
-//                     row.into_iter()
-//                         .map(|(text, url)| {
-//                             InlineKeyboardButton::builder().url(url).text(text).build()
-//                         })
-//                         .collect()
-//                 })
-//                 .collect();
+    pub async fn unknown_command(&self, command: &str) -> Result<(), BotError> {
+        self.cancel(Some(format!(
+            "Comando '{}' desconocido. Ejecuta /start para ver los comandos disponibles",
+            command
+        )))
+        .await?;
+        Ok(())
+    }
 
-//             return InlineKeyboardMarkup::builder().inline_keyboard(vec).build();
-//         }
+    pub fn texts_to_buttons<S: AsRef<str> + Into<String>, S2: AsRef<str> + Into<String>>(
+        rows: Vec<Vec<(S, S2)>>,
+        url: bool,
+    ) -> InlineKeyboardMarkup {
+        if url {
+            let vec = rows
+                .into_iter()
+                .map(|row| {
+                    row.into_iter()
+                        .map(|(text, url)| {
+                            InlineKeyboardButton::builder().url(url).text(text).build()
+                        })
+                        .collect()
+                })
+                .collect();
 
-//         let vec = rows
-//             .into_iter()
-//             .map(|row| {
-//                 row.into_iter()
-//                     .map(|(text, command)| {
-//                         InlineKeyboardButton::builder()
-//                             .callback_data(command)
-//                             .text(text)
-//                             .build()
-//                     })
-//                     .collect()
-//             })
-//             .collect();
+            return InlineKeyboardMarkup::builder().inline_keyboard(vec).build();
+        }
 
-//         InlineKeyboardMarkup::builder().inline_keyboard(vec).build()
-//     }
+        let vec = rows
+            .into_iter()
+            .map(|row| {
+                row.into_iter()
+                    .map(|(text, command)| {
+                        InlineKeyboardButton::builder()
+                            .callback_data(command)
+                            .text(text)
+                            .build()
+                    })
+                    .collect()
+            })
+            .collect();
 
-//     pub async fn send_message(&self, text: &str) -> Result<(), BotError> {
-//         let text_with_username = format!("Hola, {}!\n{}", self.chat.username, text);
+        InlineKeyboardMarkup::builder().inline_keyboard(vec).build()
+    }
 
-//         self.api
-//             .send_message(self.chat.id, self.message_id, text_with_username)
-//             .await?;
+    pub async fn send_message(&self, text: &str) -> Result<(), BotError> {
+        let text_with_username = format!("Hola, {}!\n{}", self.chat.username, text);
 
-//         Ok(())
-//     }
+        self.api
+            .send_message(self.chat.id, self.message_id, text_with_username)
+            .await?;
 
-//     async fn send_typing(&self) -> Result<(), BotError> {
-//         self.api.send_typing(self.chat.id).await?;
-//         Ok(())
-//     }
+        Ok(())
+    }
 
-//     /*async fn not_valid_offset_message(&self) -> Result<(), BotError> {
-//         self.cancel(Some(
-//             "That's not a valid offset, it has to be a number in range [-11, 12].\n
-//             If your timezone is UTC + 2 put 2, if you have UTC - 10 put -10, 0 if you have UTC timezone.\n
-//             The command was cancelled"
-//             .to_string(),
-//         ))
-//         .await?;
-
-//         Ok(())
-//     }*/
-
-//     /*async fn not_time_message(&self) -> Result<(), BotError> {
-//         self.cancel(Some(
-//             "That's not a well formatted time, it has to be formatted with this format `hour:minutes` being hour a number in range [0,23]
-//             and minutes a number in range [0,59]. The command was cancelled"
-//             .to_string(),
-//         ))
-//         .await
-//     }*/
-
-//     /*fn parse_time(hour_or_minutes: &str, max_range: i8, min_range: i8) -> Result<i8, ()> {
-//         match hour_or_minutes.parse::<i8>() {
-//             Ok(number) => {
-//                 if !(min_range..=max_range).contains(&number) {
-//                     Err(())
-//                 } else {
-//                     Ok(number)
-//                 }
-//             }
-//             Err(_) => Err(()),
-//         }
-//     }*/
-// }
+    async fn _send_typing(&self) -> Result<(), BotError> {
+        self.api.send_typing(self.chat.id).await?;
+        Ok(())
+    }
+}
