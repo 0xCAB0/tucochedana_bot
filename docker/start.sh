@@ -12,5 +12,5 @@ if [ ! -z $REVERT_DB ]; then
   ./diesel migration revert
 fi
 
-echo "Running Bot"
-./horus-bot
+echo "Running Bot $BOT_NAME"
+./$BOT_NAME

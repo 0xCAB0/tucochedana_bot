@@ -54,9 +54,7 @@ COPY --from=builder /bot/migrations/ ./migrations/
 
 # COPY --from=builder /bot/resources/ ./resources/
 
-
 # Use an unprivileged user.
 USER bot:bot
 
 CMD ["bash", "/bot/start.sh"]
-

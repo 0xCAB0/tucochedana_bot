@@ -1,10 +1,12 @@
 volumes:
   db-data:
-    name: horus-bot-data
-    external: true
+    # name: horus-bot-data
+    # external: true
 
 services:
   bot:
+    container_name: tu-dana-coche
+    image: tu-dana-coche:latest
     depends_on:
       - db
     build: ./
@@ -14,7 +16,7 @@ services:
     links:
       - "db:database"
   db:
-    image: postgres:14.5
+    image: postgres:latest
     restart: always
     ports:
       - 5434:5432
