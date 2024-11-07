@@ -23,11 +23,11 @@ pub const SELECT_COMMAND_TEXT: &str = "Seleccione un comando";
 /// Runs Fang's tasks async
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(crate = "fang::serde")]
-pub struct ProcessUpdateTask {
+pub struct ProcessUpdate {
     update: Update,
 }
 
-impl ProcessUpdateTask {
+impl ProcessUpdate {
     pub fn new(update: Update) -> Self {
         Self { update }
     }
@@ -55,7 +55,7 @@ pub enum TaskToManage {
 
 #[typetag::serde]
 #[async_trait]
-impl AsyncRunnable for ProcessUpdateTask {
+impl AsyncRunnable for ProcessUpdate {
     async fn run(&self, queueable: &mut dyn AsyncQueueable) -> Result<(), FangError> {
         let processor = match UpdateProcessor::create(&self.update).await {
             Ok(processor) => processor,

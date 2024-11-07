@@ -60,7 +60,7 @@ pub mod telegram {
 
 pub mod update_handler {
     pub mod command;
-    pub mod process_update_task;
+    pub mod process_update;
 }
 
 pub mod tasks {

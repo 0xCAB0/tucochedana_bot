@@ -3,7 +3,7 @@ use frankenstein::{InlineKeyboardButton, InlineKeyboardMarkup};
 use crate::{db::model::client_state::ClientState, BotError, BOT_NAME};
 use std::str::FromStr;
 
-use super::process_update_task::UpdateProcessor;
+use super::process_update::UpdateProcessor;
 
 /// Avalible bots commands as a Enum
 #[derive(Debug, Eq, PartialEq, Clone)]

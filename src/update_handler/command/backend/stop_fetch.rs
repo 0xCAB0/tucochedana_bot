@@ -1,5 +1,5 @@
 use crate::{
-    update_handler::process_update_task::{TaskToManage, UpdateProcessor},
+    update_handler::process_update::{TaskToManage, UpdateProcessor},
     BotError,
 };
 

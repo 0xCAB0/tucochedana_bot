@@ -1,3 +1,3 @@
-use crate::update_handler::process_update_task::UpdateProcessor;
+use crate::update_handler::process_update::UpdateProcessor;
 
 impl UpdateProcessor {}

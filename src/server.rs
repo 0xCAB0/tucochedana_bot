@@ -5,7 +5,7 @@ use axum::{
 };
 use frankenstein::Update;
 
-use crate::update_handler::process_update_task::ProcessUpdateTask;
+use crate::update_handler::process_update::ProcessUpdate;
 
 pub fn app() -> Router {
     Router::new()
@@ -14,6 +14,7 @@ pub fn app() -> Router {
 }
 
 async fn parse_update(update: Json<Update>) -> (StatusCode, Json<()>) {
-    ProcessUpdateTask::new(update.0);
+    log::info!("New update -> {:#?}", update);
+    ProcessUpdate::new(update.0);
     (StatusCode::OK, Json(()))
 }

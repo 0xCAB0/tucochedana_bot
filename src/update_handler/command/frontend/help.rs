@@ -1,6 +1,6 @@
 use crate::BotError;
 
-use crate::update_handler::process_update_task::UpdateProcessor;
+use crate::update_handler::process_update::UpdateProcessor;
 
 const HELP_TEXT: &str = include_str!("../../../../resources/help.md");
 

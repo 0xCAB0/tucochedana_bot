@@ -1,4 +1,4 @@
-use crate::{update_handler::process_update_task::UpdateProcessor, BotError};
+use crate::{update_handler::process_update::UpdateProcessor, BotError};
 
 impl UpdateProcessor {
     pub async fn add_vehicle(&self) -> Result<(), BotError> {

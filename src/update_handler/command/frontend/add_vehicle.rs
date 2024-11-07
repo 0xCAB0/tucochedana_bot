@@ -1,5 +1,5 @@
 use crate::{
-    db::model::client_state::ClientState, update_handler::process_update_task::UpdateProcessor,
+    db::model::client_state::ClientState, update_handler::process_update::UpdateProcessor,
     BotError,
 };
 

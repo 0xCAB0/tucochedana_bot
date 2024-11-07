@@ -6,7 +6,7 @@ pub const START_OPTIONS_3: &str = "Desactivar perfiles";
 pub const START_OPTIONS_4: &str = "Ayuda";
 pub const START_OPTIONS_5: &str = "Renovar suscripción";
 
-use crate::update_handler::process_update_task::UpdateProcessor;
+use crate::update_handler::process_update::UpdateProcessor;
 
 impl UpdateProcessor {
     pub async fn start_message(&self, text: &str) -> Result<(), BotError> {
