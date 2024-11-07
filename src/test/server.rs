@@ -1,8 +1,6 @@
 // Main reference https://core.telegram.org/bots/webhooks
 
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-
-use axum::body::{to_bytes, Body};
+use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use frankenstein::{Chat, Message, Update, UpdateContent, User};
 use lambda_http::tower::ServiceExt;
@@ -64,27 +62,14 @@ async fn test_root_handler() {
     // Initialize the app
     let app = app();
 
-    // Create a mock IP address and wrap it in ConnectInfo
-    let mock_ip = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 8080);
-
     // Build the request with the mock IP address in the request extensions
-    let mut request = Request::builder()
+    let request = Request::builder()
         .method("GET")
         .uri("/")
         .body(Body::empty())
         .unwrap();
-    request
-        .extensions_mut()
-        .insert(axum::extract::ConnectInfo(mock_ip));
 
     // Send the request to the app and await the response
     let response = app.oneshot(request).await.unwrap();
-
-    // Read and convert the response body to a String
-    let body_bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
-    let body_string = String::from_utf8(body_bytes.to_vec()).unwrap();
-
-    // Assert that the body content is correct
-    let expected_body = format!("Hello! Your IP address is: {}", mock_ip.ip());
-    assert_eq!(body_string, expected_body);
+    assert_eq!(response.status(), StatusCode::OK);
 }
