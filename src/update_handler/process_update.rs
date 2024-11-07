@@ -1,49 +1,29 @@
 use std::str::FromStr;
 
 use crate::db::model::client_state::ClientState;
-use crate::db::{model::chat::Chat, Repo}; //Will change BotDbError
+use crate::db::{model::chat::Chat, Repo};
 
 use crate::tasks::fetch::FetchTask;
 use crate::telegram::client::ApiClient;
-use crate::BotError;
+use crate::{BotError, DATABASE_URL};
 
-use fang::asynk::async_queue::AsyncQueueable;
-use fang::serde::{Deserialize, Serialize};
-use fang::{async_trait, typetag, AsyncRunnable, FangError};
-
+use super::command::Command;
+use fang::{AsyncQueue, AsyncQueueable, NoTls};
 use frankenstein::{
     InlineKeyboardMarkup, MaybeInaccessibleMessage, Message, Update, UpdateContent,
 };
-
-use super::command::Command;
 use typed_builder::TypedBuilder;
 
 pub const SELECT_COMMAND_TEXT: &str = "Seleccione un comando";
 
-/// Runs Fang's tasks async
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(crate = "fang::serde")]
-pub struct ProcessUpdate {
-    update: Update,
-}
-
-impl ProcessUpdate {
-    pub fn new(update: Update) -> Self {
-        Self { update }
-    }
-    async fn remove_tasks(mut profiles: String) -> Result<(), FangError> {
-        let repo = Repo::repo().await?;
-
-        profiles.pop();
-
-        for profile_id in profiles.split(',') {
-            let profile_id: String = profile_id.to_string();
-            repo.delete_tasks_by_chat_id(&profile_id).await?;
-        }
-
-        Ok(())
-    }
-}
+// lazy_static! {
+//     static ref QUEUE: Mutex<AsyncQueue<NoTls>> = Mutex::new(
+//         AsyncQueue::builder()
+//             .uri(DATABASE_URL.clone())
+//             .max_pool_size(1_u32)
+//             .build()
+//     );
+// }
 
 #[derive(Debug, Clone)]
 pub enum TaskToManage {
@@ -51,57 +31,6 @@ pub enum TaskToManage {
     FetchTasks(Vec<FetchTask>),
     RemoveTasks(String),
     NoTask,
-}
-
-#[typetag::serde]
-#[async_trait]
-impl AsyncRunnable for ProcessUpdate {
-    async fn run(&self, queueable: &mut dyn AsyncQueueable) -> Result<(), FangError> {
-        let processor = match UpdateProcessor::create(&self.update).await {
-            Ok(processor) => processor,
-            Err(err) => {
-                log::error!("Failed to initialize the processor {:?}", err);
-                return Ok(());
-            }
-        };
-
-        match processor.process().await {
-            Err(error) => {
-                log::error!(
-                    "Failed to process the update {:?} - {:?}. Reverting...",
-                    self.update,
-                    error
-                );
-
-                if let Err(err) = processor.revert_state().await {
-                    log::error!("Failed to revert: {:?}", err);
-                }
-            }
-
-            Ok(option) => match option {
-                TaskToManage::FetchTasks(tasks) => {
-                    for task in tasks {
-                        queueable.schedule_task(&task).await?;
-                    }
-                }
-                TaskToManage::FetchTask(task) => {
-                    queueable.schedule_task(&task).await?;
-                }
-
-                TaskToManage::RemoveTasks(profiles) => {
-                    Self::remove_tasks(profiles).await?;
-                }
-
-                TaskToManage::NoTask => (),
-            },
-        }
-
-        Ok(())
-    }
-
-    fn task_type(&self) -> String {
-        "process_update".to_string()
-    }
 }
 
 /// Telegram's Update event handler
@@ -115,10 +44,11 @@ pub struct UpdateProcessor {
     pub inline_keyboard: Option<Box<InlineKeyboardMarkup>>,
     pub command: Command,
     pub chat: Chat,
+    pub queue: AsyncQueue<NoTls>,
 }
 
 impl UpdateProcessor {
-    pub async fn create(update: &Update) -> Result<Self, BotError> {
+    async fn create(update: &Update) -> Result<Self, BotError> {
         let repo = Repo::repo().await?;
         let api = ApiClient::api_client().await;
 
@@ -187,6 +117,13 @@ impl UpdateProcessor {
 
         let keyboard = message.reply_markup.clone();
 
+        let mut queue: AsyncQueue<NoTls> = AsyncQueue::builder()
+            .uri(DATABASE_URL.clone())
+            .max_pool_size(1_u32)
+            .build();
+
+        queue.connect(NoTls).await.unwrap();
+
         let processor = Self::builder()
             .repo(repo)
             .api(api)
@@ -196,12 +133,56 @@ impl UpdateProcessor {
             .chat(chat)
             .command(command)
             .inline_keyboard(keyboard)
+            .queue(queue)
             .build();
 
         Ok(processor)
     }
 
-    pub async fn process(&self) -> Result<TaskToManage, BotError> {
+    pub async fn run(update: &Update) -> Result<(), BotError> {
+        let mut processor = match UpdateProcessor::create(&update).await {
+            Ok(processor) => processor,
+            Err(err) => {
+                log::error!("Failed to initialize the processor {:?}", err);
+                return Ok(());
+            }
+        };
+
+        match processor.process().await {
+            Err(error) => {
+                log::error!(
+                    "Failed to process the update {:?} - {:?}. Reverting...",
+                    update,
+                    error
+                );
+
+                if let Err(err) = processor.revert_state().await {
+                    log::error!("Failed to revert: {:?}", err);
+                }
+            }
+
+            Ok(option) => match option {
+                TaskToManage::FetchTasks(tasks) => {
+                    for task in tasks {
+                        processor.queue.schedule_task(&task).await?;
+                    }
+                }
+                TaskToManage::FetchTask(task) => {
+                    processor.queue.schedule_task(&task).await?;
+                }
+
+                TaskToManage::RemoveTasks(profiles) => {
+                    Self::remove_tasks(profiles).await?;
+                }
+
+                TaskToManage::NoTask => (),
+            },
+        }
+
+        Ok(())
+    }
+
+    async fn process(&self) -> Result<TaskToManage, BotError> {
         //self.send_typing().await?;
 
         if Command::Cancel == self.command {
@@ -260,5 +241,17 @@ impl UpdateProcessor {
             }
             _ => Ok(TaskToManage::NoTask),
         }
+    }
+
+    async fn remove_tasks(mut profiles: String) -> Result<(), BotError> {
+        let repo = Repo::repo().await?;
+
+        profiles.pop();
+
+        for chat_id in profiles.split(',') {
+            repo.delete_tasks_by_chat_id(chat_id).await?;
+        }
+
+        Ok(())
     }
 }

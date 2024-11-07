@@ -1,5 +1,6 @@
+#![feature(trivial_bounds)]
 use db::BotDbError;
-use fang::{FangError, ToFangError};
+use fang::{AsyncQueueError, FangError, ToFangError};
 use frankenstein::reqwest::StatusCode;
 use lazy_static::lazy_static;
 use std::fmt::{self, Debug};
@@ -45,6 +46,7 @@ lazy_static! {
 }
 
 pub mod server;
+pub mod workers;
 
 pub mod tucochedana {
     pub mod client;
@@ -85,6 +87,8 @@ pub enum BotError {
     TuCocheDanaError(StatusCode, String),
     #[error(transparent)]
     HttpError(#[from] std::io::Error),
+    #[error(transparent)]
+    AsyncQueueError(#[from] AsyncQueueError),
 }
 
 #[derive(Debug, Error)]

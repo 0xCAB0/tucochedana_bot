@@ -45,7 +45,7 @@ pub enum ApiError {
     FrankensteinError(#[from] frankenstein::Error),
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ApiClient {
     telegram_client: AsyncApi,
     update_params: GetUpdatesParams,

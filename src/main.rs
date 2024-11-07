@@ -1,5 +1,6 @@
 use tu_coche_dana_bot::{
-    server::app, telegram::client::ApiClient, SERVER_PORT, WEBHOOK_CERT, WEBHOOK_PORT, WEBHOOK_URL,
+    server::app, telegram::client::ApiClient, workers, SERVER_PORT, WEBHOOK_CERT, WEBHOOK_PORT,
+    WEBHOOK_URL,
 };
 
 #[tokio::main]
@@ -8,6 +9,9 @@ async fn main() {
     dotenvy::dotenv().ok();
     // Logger
     pretty_env_logger::init_timed();
+
+    // Start fang workers
+    workers::start_workers().await.unwrap();
 
     // Webhook setup
     let telegram = ApiClient::api_client().await;
