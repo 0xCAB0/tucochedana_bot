@@ -1,5 +1,5 @@
 use tu_coche_dana_bot::{
-    server::app, telegram::client::ApiClient, WEBHOOK_CERT, WEBHOOK_PORT, WEBHOOK_URL,
+    server::app, telegram::client::ApiClient, SERVER_PORT, WEBHOOK_CERT, WEBHOOK_PORT, WEBHOOK_URL,
 };
 
 #[tokio::main]
@@ -25,7 +25,7 @@ async fn main() {
         log::error!("{:?}", response.description);
     }
     // Http Server
-    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", *WEBHOOK_PORT))
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", *SERVER_PORT))
         .await
         .unwrap();
     log::info!("listening on {}", listener.local_addr().unwrap());

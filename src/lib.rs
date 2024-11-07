@@ -29,6 +29,10 @@ lazy_static! {
         .expect("WEBHOOK_PORT not set")
         .parse()
         .expect("WEBHOOK_PORT should be an u32 number");
+    pub static ref SERVER_PORT: u32 = std::env::var("SERVER_PORT")
+        .expect("SERVER_PORT not set")
+        .parse()
+        .expect("SERVER_PORT should be an u32 number");
     pub static ref BOT_NAME: String = std::env::var("BOT_NAME").expect("BOT_NAME not set");
     pub static ref FETCH_IN_MINUTES: u8 = std::env::var("FETCH_IN_MINUTES")
         .unwrap_or(String::from("5"))
