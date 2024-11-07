@@ -1,6 +1,5 @@
 use crate::{
-    db::model::client_state::ClientState, update_handler::process_update::UpdateProcessor,
-    BotError,
+    db::model::client_state::ClientState, update_handler::process_update::UpdateProcessor, BotError,
 };
 
 pub const ADD_BRAND_MESSAGE_TEXT: &str =
