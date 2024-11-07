@@ -34,16 +34,21 @@ lazy_static! {
         .expect("The number of retries should be 0<=N<=255");
 }
 
+const TASK_NAME: &str = "scheduled_fetch";
+
+/// HTTP Server module
 pub mod server;
+
+/// Fang task
 pub mod workers;
 
+/// API Module
 pub mod tucochedana {
     pub mod client;
 }
 
+/// Database module
 pub mod db;
-
-pub mod test;
 
 pub mod telegram {
     pub mod client;

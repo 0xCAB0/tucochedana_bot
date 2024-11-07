@@ -1,4 +1,5 @@
 use crate::DATABASE_URL;
+use crate::TASK_NAME;
 
 use fang::asynk::async_queue::AsyncQueue;
 use fang::asynk::async_worker_pool::AsyncWorkerPool;
@@ -13,7 +14,7 @@ const MAX_WORKERS: u32 = 15u32;
 
 pub async fn start_workers() -> Result<AsyncQueue<NoTls>, FangError> {
     let mut queue: AsyncQueue<NoTls> = AsyncQueue::builder()
-        .uri(DATABASE_URL.clone())
+        .uri(DATABASE_URL.to_string())
         .max_pool_size(MAX_WORKERS)
         .build();
 
@@ -30,7 +31,7 @@ pub async fn start_workers() -> Result<AsyncQueue<NoTls>, FangError> {
         .number_of_workers(MAX_WORKERS)
         .sleep_params(params)
         .queue(queue.clone())
-        .task_type("scheduled_fetch")
+        .task_type(TASK_NAME)
         .build();
 
     pool_scheduled_fetch.start().await;

@@ -1,7 +1,7 @@
 use crate::db::Repo;
 use crate::telegram::client::ApiClient;
 
-use crate::{FETCH_IN_MINUTES, MAX_RETRIES};
+use crate::{FETCH_IN_MINUTES, MAX_RETRIES, TASK_NAME};
 
 use fang::{
     async_trait, typetag, AsyncQueueable, AsyncRunnable, Deserialize, FangError, Scheduled,
@@ -56,7 +56,7 @@ impl AsyncRunnable for FetchTask {
     }
 
     fn task_type(&self) -> String {
-        "scheduled_fetch".to_string()
+        TASK_NAME.to_string()
     }
     fn max_retries(&self) -> i32 {
         *MAX_RETRIES
