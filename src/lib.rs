@@ -1,4 +1,3 @@
-#![feature(trivial_bounds)]
 use db::BotDbError;
 use fang::{AsyncQueueError, FangError, ToFangError};
 use frankenstein::reqwest::StatusCode;
@@ -11,18 +10,8 @@ use thiserror::Error;
 lazy_static! {
     pub static ref TELEGRAM_BOT_TOKEN: String =
         std::env::var("TELEGRAM_BOT_TOKEN").expect("TELEGRAM_BOT_TOKEN not set");
-    pub static ref POSTGRES_DB: String =
-        std::env::var("POSTGRES_DB").unwrap_or(String::from("vinted-rs"));
-    pub static ref POSTGRES_USER: String =
-        std::env::var("POSTGRES_USER").unwrap_or(String::from("postgres"));
-    pub static ref POSTGRES_PASSWORD: String =
-        std::env::var("POSTGRES_PASSWORD").unwrap_or(String::from("postgres"));
-    pub static ref DATABASE_URL: String = {
-        format!(
-            "postgres://{}:{}@localhost/{}?sslmode=disable",
-            *POSTGRES_USER, *POSTGRES_PASSWORD, *POSTGRES_DB
-        )
-    };
+    pub static ref DATABASE_URL: String =
+        std::env::var("DATABASE_URL").expect("DATABASE URL not set");
     pub static ref API_URL: String = std::env::var("API_URL").expect("API_URL not set");
     pub static ref WEBHOOK_URL: String = std::env::var("WEBHOOK_URL").expect("WEBHOOK_URL not set");
     pub static ref WEBHOOK_CERT: Option<String> = std::env::var("WEBHOOK_CERT").ok();
