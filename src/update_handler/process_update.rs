@@ -140,7 +140,7 @@ impl UpdateProcessor {
     }
 
     pub async fn run(update: &Update) -> Result<(), BotError> {
-        let mut processor = match UpdateProcessor::create(&update).await {
+        let mut processor = match UpdateProcessor::create(update).await {
             Ok(processor) => processor,
             Err(err) => {
                 log::error!("Failed to initialize the processor {:?}", err);
