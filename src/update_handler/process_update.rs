@@ -1,17 +1,19 @@
 use std::str::FromStr;
+use std::sync::Arc;
 
 use crate::db::model::client_state::ClientState;
 use crate::db::{model::chat::Chat, Repo};
 
 use crate::tasks::fetch::FetchTask;
 use crate::telegram::client::ApiClient;
-use crate::{BotError, DATABASE_URL};
+use crate::BotError;
 
 use super::command::Command;
 use fang::{AsyncQueue, AsyncQueueable, NoTls};
 use frankenstein::{
     InlineKeyboardMarkup, MaybeInaccessibleMessage, Message, Update, UpdateContent,
 };
+use tokio::sync::Mutex;
 use typed_builder::TypedBuilder;
 
 pub const SELECT_COMMAND_TEXT: &str = "Seleccione un comando";
@@ -44,7 +46,6 @@ pub struct UpdateProcessor {
     pub inline_keyboard: Option<Box<InlineKeyboardMarkup>>,
     pub command: Command,
     pub chat: Chat,
-    pub queue: AsyncQueue<NoTls>,
 }
 
 impl UpdateProcessor {
@@ -117,13 +118,6 @@ impl UpdateProcessor {
 
         let keyboard = message.reply_markup.clone();
 
-        let mut queue: AsyncQueue<NoTls> = AsyncQueue::builder()
-            .uri(DATABASE_URL.clone())
-            .max_pool_size(1_u32)
-            .build();
-
-        queue.connect(NoTls).await.unwrap();
-
         let processor = Self::builder()
             .repo(repo)
             .api(api)
@@ -133,14 +127,16 @@ impl UpdateProcessor {
             .chat(chat)
             .command(command)
             .inline_keyboard(keyboard)
-            .queue(queue)
             .build();
 
         Ok(processor)
     }
 
-    pub async fn run(update: &Update) -> Result<(), BotError> {
-        let mut processor = match UpdateProcessor::create(update).await {
+    pub async fn run(
+        update: &Update,
+        queue: Arc<Mutex<AsyncQueue<NoTls>>>,
+    ) -> Result<(), BotError> {
+        let processor = match UpdateProcessor::create(update).await {
             Ok(processor) => processor,
             Err(err) => {
                 log::error!("Failed to initialize the processor {:?}", err);
@@ -164,11 +160,11 @@ impl UpdateProcessor {
             Ok(option) => match option {
                 TaskToManage::FetchTasks(tasks) => {
                     for task in tasks {
-                        processor.queue.schedule_task(&task).await?;
+                        queue.try_lock().unwrap().schedule_task(&task).await?;
                     }
                 }
                 TaskToManage::FetchTask(task) => {
-                    processor.queue.schedule_task(&task).await?;
+                    queue.try_lock().unwrap().schedule_task(&task).await?;
                 }
 
                 TaskToManage::RemoveTasks(profiles) => {

@@ -11,7 +11,7 @@ async fn main() {
     pretty_env_logger::init_timed();
 
     // Start fang workers
-    workers::start_workers().await.unwrap();
+    let queue = workers::start_workers().await.unwrap();
 
     // Webhook setup
     let telegram = ApiClient::api_client().await;
@@ -33,5 +33,5 @@ async fn main() {
         .await
         .unwrap();
     log::info!("listening on {}", listener.local_addr().unwrap());
-    axum::serve(listener, app()).await.unwrap();
+    axum::serve(listener, app(queue)).await.unwrap();
 }

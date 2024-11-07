@@ -2,17 +2,31 @@
 
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
+use bb8_postgres::tokio_postgres::NoTls;
+use fang::AsyncQueue;
 use frankenstein::{Chat, Message, Update, UpdateContent, User};
 use lambda_http::tower::ServiceExt;
 
 use crate::server::app;
+use crate::DATABASE_URL;
+
+async fn init_testing_queue() -> AsyncQueue<NoTls> {
+    let mut queue: AsyncQueue<NoTls> = AsyncQueue::builder()
+        .uri(DATABASE_URL.clone())
+        .max_pool_size(1_u32)
+        .build();
+
+    queue.connect(NoTls).await.unwrap();
+    queue
+}
 
 /// Basic example https://core.telegram.org/bots/webhooks#testing-your-bot-with-updates
 #[tokio::test]
 async fn test_webhook_dispatch() {
     dotenvy::dotenv().ok();
 
-    let app = app();
+    let queue = init_testing_queue().await;
+    let app = app(queue);
 
     let chat = Chat::builder()
         .id(1111111)
@@ -59,8 +73,11 @@ async fn test_webhook_dispatch() {
 
 #[tokio::test]
 async fn test_root_handler() {
+    dotenvy::dotenv().ok();
+
+    let queue = init_testing_queue().await;
     // Initialize the app
-    let app = app();
+    let app = app(queue);
 
     // Build the request with the mock IP address in the request extensions
     let request = Request::builder()
