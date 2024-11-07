@@ -5,6 +5,6 @@ use postgres_types::{FromSql, ToSql};
 pub enum ClientState {
     #[postgres(name = "initial")]
     Initial,
-    #[postgres(name = "edit_name")]
+    #[postgres(name = "add_vehicle")]
     AddVehicle,
 }

@@ -14,7 +14,6 @@ pub fn app() -> Router {
 }
 
 async fn parse_update(update: Json<Update>) -> (StatusCode, Json<()>) {
-    log::info!("New update {:?}", update);
     ProcessUpdateTask::new(update.0);
     (StatusCode::OK, Json(()))
 }

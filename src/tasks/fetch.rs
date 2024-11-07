@@ -28,7 +28,7 @@ impl AsyncRunnable for FetchTask {
         let chat_raw = repo.get_chat(&self.chat_id).await;
 
         match chat_raw {
-            Ok(chat) if !chat.fetch => {
+            Ok(chat) if !chat.active => {
                 // `chat` is inactive, remove the task and return early
                 queueable.remove_task_by_metadata(self).await?;
                 Ok(())
