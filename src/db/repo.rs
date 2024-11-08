@@ -152,7 +152,12 @@ impl Repo {
         Ok(connection.query(&query, &[]).await?)
     }
 
-    pub async fn get_vehicles(
+    pub async fn get_vehicles_by_chat_id(&self, chat_id: &i64) -> Result<Vec<Vehicle>, BotDbError> {
+        let chat = self.get_chat(chat_id).await?;
+        todo!()
+    }
+
+    pub async fn get_vehicles_from_subs_string(
         &self,
         subscribed_vehicles: &String,
     ) -> Result<Vec<Vehicle>, BotDbError> {
@@ -349,6 +354,8 @@ impl Repo {
 mod db_tests {
     use std::ops::Not;
 
+    use crate::db::model::vehicle;
+
     use super::*;
 
     async fn clear_database() -> Result<(), BotDbError> {
@@ -514,9 +521,38 @@ mod db_tests {
 
         //db_controller.subscribe_chat_id_to_vehicle(plate, chat_id)
     }
-    // #[tokio::test]
-    // async fn list_my_vehicles() {
-    //     clear_database().await.unwrap();
-    //     populate_database().await.unwrap();
-    // }
+
+    #[tokio::test]
+    async fn list_my_vehicles() {
+        clear_database().await.unwrap();
+        populate_database().await.unwrap();
+
+        let db_controller = Repo::new_no_tls().await.unwrap();
+        let _connection = db_controller.get_connection().get().await.unwrap();
+
+        let expected_subscriptions = vec![
+            Vehicle::builder()
+                .plate("ABC123".to_string())
+                .subscribers_ids(Some(String::from("1,")))
+                .found_at(None)
+                .build(),
+            Vehicle::builder()
+                .plate("DEF456".to_string())
+                .subscribers_ids(Some(String::from("1,2,")))
+                .found_at(None)
+                .build(),
+        ];
+        let testing_chat = 1;
+
+        let chat = db_controller.get_chat(&testing_chat).await.unwrap();
+
+        let subbed = db_controller
+            .get_vehicles_from_subs_string(&chat.subscribed_vehicles.unwrap())
+            .await
+            .unwrap();
+
+        for element in expected_subscriptions {
+            assert!(subbed.contains(&element));
+        }
+    }
 }

@@ -2,7 +2,7 @@ use bb8_postgres::tokio_postgres::Row;
 use chrono::{DateTime, Utc};
 use typed_builder::TypedBuilder;
 
-#[derive(Debug, Clone, TypedBuilder)]
+#[derive(Debug, Clone, TypedBuilder, PartialEq)]
 pub struct Vehicle {
     pub plate: String,
     pub subscribers_ids: Option<String>,

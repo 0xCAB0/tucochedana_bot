@@ -7,7 +7,7 @@ pub const DELETE_EMOJI: &str = "❌";
 impl UpdateProcessor {
     pub async fn get_vehicles(&self) -> Result<(), BotError> {
         let vehicles = match &self.chat.subscribed_vehicles {
-            Some(vehicles) => self.repo.get_vehicles(vehicles).await?,
+            Some(vehicles) => self.repo.get_vehicles_from_subs_string(vehicles).await?,
             None => vec![],
         };
 
