@@ -192,9 +192,10 @@ impl UpdateProcessor {
 
             ClientState::AddVehicle => {
                 if let Command::UnknownCommand(_) = self.command {
-                    self.add_vehicle().await?;
+                    self.add_vehicle().await
+                } else {
+                    Ok(TaskToManage::NoTask)
                 }
-                Ok(TaskToManage::NoTask)
             }
         }
     }
