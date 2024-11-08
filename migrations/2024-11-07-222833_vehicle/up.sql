@@ -7,6 +7,6 @@ ALTER TABLE vehicles RENAME COLUMN chat_id TO chat_ids;
 
 ALTER TABLE vehicles ALTER COLUMN chat_ids TYPE VARCHAR;
 
-ALTER TABLE vehicles Add COLUMN found_at TYPE TIMESTAMP;
+ALTER TABLE vehicles ADD COLUMN found_at TIMESTAMP WITH TIME ZONE;
 
 ALTER TABLE chats DROP COLUMN selected_vehicles;
