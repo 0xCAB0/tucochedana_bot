@@ -8,6 +8,7 @@ use super::process_update::UpdateProcessor;
 /// Avalible bots commands as a Enum
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum Command {
+    RemoveVehicle,
     AddVehicle,
     AddVehicleMessage,
     MyAddedVehicles,
@@ -32,7 +33,8 @@ impl FromStr for Command {
             "/help" => Command::Help,
             "/start_back" => Command::StartBack,
             "/add_vehicle" => Command::AddVehicle,
-            "/vehicle_info" => Command::VehicleInfo,
+            "/check_vehicle" => Command::VehicleInfo,
+            "/delete_vehicle" => Command::RemoveVehicle,
             "/add_vehicle_message" => Command::AddVehicleMessage,
             "/get_my_vehicles" => Command::MyAddedVehicles,
             "/start_fetch" => Command::StartFetch,
@@ -54,6 +56,7 @@ pub mod frontend {
     pub mod add_vehicle;
     pub mod help;
     pub mod list_vehicles;
+    pub mod remove_vehicle;
     pub mod start;
     pub mod vehicle_info;
 }

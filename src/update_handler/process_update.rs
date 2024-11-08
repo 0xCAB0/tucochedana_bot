@@ -227,6 +227,11 @@ impl UpdateProcessor {
                 Ok(TaskToManage::NoTask)
             }
 
+            Command::RemoveVehicle => {
+                self.remove_vehicle().await?;
+                Ok(TaskToManage::NoTask)
+            }
+
             Command::StartFetch => self.start_fetch().await,
 
             Command::StopFetch => self.stop_fetch().await,
