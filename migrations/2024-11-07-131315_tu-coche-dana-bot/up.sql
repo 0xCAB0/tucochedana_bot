@@ -17,18 +17,13 @@ CREATE TABLE chats (
     state client_state DEFAULT 'initial' NOT NULL,
     active BOOLEAN DEFAULT FALSE,
     selected_text VARCHAR(80),
-    selected_vehicles TEXT,
+    subscribed_vehicles TEXT,
     language_code VARCHAR(3)
 );
 
--- Add more profiles in future countries_ids etc ...
-
--- IMPORTANT:
--- UPDATE duplicate_profile query if this table is updated.
-
 CREATE TABLE vehicles (
     plate VARCHAR,
-    chat_id BIGINT,
-    PRIMARY KEY (plate),
-    CONSTRAINT fk_chats FOREIGN KEY (chat_id) REFERENCES chats (id)
+    subscribers_ids TEXT,
+    found_at TIMESTAMP WITH TIME ZONE,
+    PRIMARY KEY (plate)
 );

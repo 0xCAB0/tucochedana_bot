@@ -12,6 +12,7 @@ pub struct Chat {
     pub username: String,
     pub state: ClientState,
     pub selected_text: Option<String>,
+    pub subscribed_vehicles: Option<String>,
     pub active: bool,
     pub language_code: Option<String>,
 }
@@ -29,6 +30,7 @@ impl From<Row> for Chat {
             .username(row.get("username"))
             .state(row.get("state"))
             .selected_text(row.try_get("selected_text").ok())
+            .subscribed_vehicles(row.try_get("subscribed_vehicles").ok())
             .active(row.get("active"))
             .language_code(row.try_get("language_code").ok())
             .build()

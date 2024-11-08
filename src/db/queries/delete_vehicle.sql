@@ -1,1 +1,1 @@
-DELETE FROM chats WHERE id = $1
+DELETE FROM vehicles WHERE plate = $1

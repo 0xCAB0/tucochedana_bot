@@ -1,1 +1,0 @@
-SELECT * FROM vehicles WHERE chat_id = $1 ORDER BY vehicles

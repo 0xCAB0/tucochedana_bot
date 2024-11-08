@@ -4,16 +4,25 @@ impl UpdateProcessor {
     pub async fn add_vehicle(&self) -> Result<(), BotError> {
         let plate = self.chat.selected_text.as_ref().unwrap();
 
-        let text = if self.repo.insert_vehicle(plate).await.is_ok() {
+        // let text = if self.repo.insert_vehicle(plate).await.is_ok() {
+        //     format!("Vehículo {plate} añadido")
+        // } else {
+        //     //TODO: ¿Deberíamos realizar alguna acción extra si ya está registrado?
+        //     format!("El vehículo {plate} ya ha sido registrado por otro usuario, le añadiremos como interesado")
+        // };
+
+        self.repo.find_or_create_vehicle(plate).await?;
+
+        let text = if self
+            .repo
+            .subscribe_chat_id_to_vehicle(plate, self.chat.id)
+            .await
+            .is_ok()
+        {
             format!("Vehículo {plate} añadido")
         } else {
-            //TODO: ¿Deberíamos realizar alguna acción extra si ya está registrado?
-            format!("El vehículo {plate} ya ha sido registrado por otro usuario, le añadiremos como interesado")
+            format!("El vehículo {plate} ya ha sido añadido previamente")
         };
-
-        self.repo
-            .subscribe_chat_id_to_vehicle(plate, self.chat.id)
-            .await?;
 
         let keyboard = *self.inline_keyboard.clone().unwrap();
 

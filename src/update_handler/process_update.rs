@@ -168,8 +168,8 @@ impl UpdateProcessor {
                     queue.try_lock().unwrap().schedule_task(&task).await?;
                 }
 
-                TaskToManage::RemoveTasks(profiles) => {
-                    Self::remove_tasks(profiles).await?;
+                TaskToManage::RemoveTasks(subscribers) => {
+                    Self::remove_tasks(subscribers).await?;
                 }
 
                 TaskToManage::NoTask => (),
@@ -236,12 +236,12 @@ impl UpdateProcessor {
         }
     }
 
-    async fn remove_tasks(mut profiles: String) -> Result<(), BotError> {
+    async fn remove_tasks(mut subscribers: String) -> Result<(), BotError> {
         let repo = Repo::repo().await?;
 
-        profiles.pop();
+        subscribers.pop();
 
-        for chat_id in profiles.split(',') {
+        for chat_id in subscribers.split(',') {
             repo.delete_tasks_by_chat_id(chat_id).await?;
         }
 

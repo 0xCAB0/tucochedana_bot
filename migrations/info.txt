@@ -1,1 +1,0 @@
-This directory needs to exist for diesel migration generate to work

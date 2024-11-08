@@ -1,1 +1,1 @@
-SELECT * FROM vehicle WHERE plate = $1
+SELECT * FROM vehicles WHERE plate = $1
