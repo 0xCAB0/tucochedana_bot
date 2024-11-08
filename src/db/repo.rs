@@ -26,6 +26,8 @@ const GET_CHAT: &str = include_str!("queries/get_chat.sql");
 const GET_VEHICLE: &str = include_str!("queries/get_vehicle.sql");
 const GET_VEHICLES: &str = include_str!("queries/get_vehicles.sql");
 const MODIFY_STATE: &str = include_str!("queries/modify_state.sql");
+const MODIFY_ACTIVE_CHAT: &str = include_str!("queries/modify_active_chat.sql");
+const MODIFY_ACTIVE_VEHICLE: &str = include_str!("queries/modify_active vehicle.sql");
 const CONCANT_CHAT_TO_SUBSCRIBERS: &str = include_str!("queries/concat_to_subscribers.sql");
 const CONCAT_VEHICLE_TO_SUBSCRIPTIONS: &str =
     include_str!("queries/concat_to_subscribed_vehicles.sql");
@@ -331,6 +333,32 @@ impl Repo {
         Ok(n)
     }
 
+    pub async fn modify_active_vehicle(
+        &self,
+        plate: &str,
+        new_state: bool,
+    ) -> Result<u64, BotDbError> {
+        let connection = self.pool.get().await?;
+
+        let n = connection
+            .execute(MODIFY_ACTIVE_VEHICLE, &[&new_state, &plate])
+            .await?;
+        Ok(n)
+    }
+
+    pub async fn modify_active_chat(
+        &self,
+        chat_id: &i64,
+        new_state: bool,
+    ) -> Result<u64, BotDbError> {
+        let connection = self.pool.get().await?;
+
+        let n = connection
+            .execute(MODIFY_ACTIVE_CHAT, &[&new_state, chat_id])
+            .await?;
+        Ok(n)
+    }
+
     pub async fn modify_state(
         &self,
         chat_id: &i64,
@@ -578,5 +606,89 @@ mod db_tests {
         for element in expected_subscriptions {
             assert!(subbed.contains(&element));
         }
+    }
+
+    // Test for modifying the active state of a vehicle
+    #[tokio::test]
+    async fn test_modify_active_vehicle() {
+        clear_database().await.unwrap();
+        populate_database().await.unwrap();
+
+        let db_controller = Repo::new_no_tls().await.unwrap();
+        let connection = db_controller.get_connection().get().await.unwrap();
+
+        // Modify the active state of a vehicle
+        let n = db_controller
+            .modify_active_vehicle("ABC123", true)
+            .await
+            .unwrap();
+
+        // Verify that the vehicle's active state was updated
+        let row = connection
+            .query_one("SELECT active FROM vehicles WHERE plate = $1", &[&"ABC123"])
+            .await
+            .unwrap();
+
+        let active: bool = row.get(0);
+        assert_eq!(active, true);
+        assert_eq!(n, 1);
+
+        // Test for setting the vehicle as inactive
+        let n = db_controller
+            .modify_active_vehicle("ABC123", false)
+            .await
+            .unwrap();
+
+        // Verify the state after modifying it to inactive
+        let row = connection
+            .query_one("SELECT active FROM vehicles WHERE plate = $1", &[&"ABC123"])
+            .await
+            .unwrap();
+
+        let active: bool = row.get(0);
+        assert_eq!(active, false);
+        assert_eq!(n, 1);
+    }
+
+    // Test for modifying the active state of a chat
+    #[tokio::test]
+    async fn test_modify_active_chat() {
+        clear_database().await.unwrap();
+        populate_database().await.unwrap();
+
+        let db_controller = Repo::new_no_tls().await.unwrap();
+        let connection = db_controller.get_connection().get().await.unwrap();
+
+        // Modify the active state of a chat
+        let n = db_controller
+            .modify_active_chat(&1_i64, true)
+            .await
+            .unwrap();
+
+        // Verify that the chat's active state was updated
+        let row = connection
+            .query_one("SELECT active FROM chats WHERE id = $1", &[&1_i64])
+            .await
+            .unwrap();
+
+        let active: bool = row.get(0);
+        assert_eq!(active, true);
+        assert_eq!(n, 1);
+
+        // Test for setting the chat as inactive
+        let n = db_controller
+            .modify_active_chat(&1_i64, false)
+            .await
+            .unwrap();
+
+        // Verify the state after modifying it to inactive
+        let row = connection
+            .query_one("SELECT active FROM chats WHERE id = $1", &[&1_i64])
+            .await
+            .unwrap();
+
+        let active: bool = row.get(0);
+        assert_eq!(active, false);
+        assert_eq!(n, 1);
     }
 }
