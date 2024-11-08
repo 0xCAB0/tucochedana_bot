@@ -1,1 +1,1 @@
-DELETE FROM fang_tasks WHERE metadata ->> 'chat_id' = $1
+DELETE FROM fang_tasks WHERE metadata ->> 'plate' = $1

@@ -20,15 +20,18 @@ impl UpdateProcessor {
                 .await?;
         }
 
+        let alert_row = if !self.chat.active {
+            (START_OPTIONS_2, "/start_fetch")
+        } else {
+            (START_OPTIONS_3, "/stop_fetch")
+        };
+
         let rows = vec![
             vec![
                 (START_OPTIONS_1, "/add_vehicle_message"),
                 (START_OPTIONS_1_2, "/get_my_vehicles"),
             ],
-            vec![
-                (START_OPTIONS_2, "/start_fetch"),
-                (START_OPTIONS_3, "/stop_fetch"),
-            ],
+            vec![alert_row],
             vec![(START_OPTIONS_4, "/help")],
         ];
 

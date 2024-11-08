@@ -35,8 +35,9 @@ const _DELETE_VEHICLE: &str = include_str!("queries/delete_vehicle.sql");
 const _DELETE_ALL_FANG_TASKS_BY_PROFILE_ID: &str =
     include_str!("queries/delete_all_tasks_by_profile_id.sql");
 const DELETE_FETCH_TASK_BY_PLATE: &str = include_str!("queries/delete_fetch_tasks_by_plate.sql");
-
 const UPDATE_SUBSCRIBED_CHATS: &str = include_str!("queries/update_subscribed_chats.sql");
+const FILTER_ACTIVE_CHATS: &str = include_str!("queries/filter_active_chats.sql");
+const COUNT_SUBSCRIBERS_PLATE: &str = include_str!("queries/count_subscribers_plate.sql");
 
 pub struct Repo {
     pool: Pool<PostgresConnectionManager<NoTls>>,
@@ -250,10 +251,7 @@ impl Repo {
         Ok(n)
     }
 
-    pub async fn get_subscriptions_from_vehicle(
-        &self,
-        plate: &str,
-    ) -> Result<Vec<i64>, BotDbError> {
+    async fn _get_subscriptions_from_vehicle(&self, plate: &str) -> Result<Vec<i64>, BotDbError> {
         let chat_ids = self.get_vehicle(plate).await?.subscribers_ids;
 
         let result = if chat_ids.is_none() {
@@ -266,6 +264,27 @@ impl Repo {
             split
                 .filter_map(|id| id.parse::<i64>().ok())
                 .collect::<Vec<i64>>()
+        };
+
+        Ok(result)
+    }
+
+    pub async fn get_active_subscriptions_from_vehicle(
+        &self,
+        plate: &str,
+    ) -> Result<Vec<Chat>, BotDbError> {
+        let chat_ids = self.get_vehicle(plate).await?.subscribers_ids;
+
+        let result = if chat_ids.is_none() {
+            vec![]
+        } else {
+            let connection = self.pool.get().await?;
+
+            let chat_ids_str = chat_ids.unwrap();
+            let active_chats: Vec<Row> = connection
+                .query(FILTER_ACTIVE_CHATS, &[&chat_ids_str])
+                .await?;
+            active_chats.into_iter().map(|row| row.into()).collect()
         };
 
         Ok(result)
@@ -378,6 +397,14 @@ impl Repo {
             .await?;
         Ok(n)
     }
+
+    pub async fn subscribers_by_plate(&self, plate: &str) -> Result<u64, BotDbError> {
+        let connection = self.pool.get().await?;
+        let n = connection
+            .execute(COUNT_SUBSCRIBERS_PLATE, &[&plate])
+            .await?;
+        Ok(n)
+    }
 }
 
 #[cfg(test)]
@@ -389,14 +416,17 @@ mod db_tests {
 
     use super::*;
 
-    async fn clear_database() -> Result<(), BotDbError> {
+    async fn clear_database() -> Result<(u64, u64), BotDbError> {
         dotenvy::dotenv().ok();
         let db_controller = Repo::new_no_tls().await.unwrap();
         let connection = db_controller.get_connection().get().await?;
 
-        let _ = &connection.execute("DELETE FROM chats", &[]).await?;
-        let _ = &connection.execute("DELETE FROM vehicles", &[]).await?;
-        Ok(())
+        let n1 = &connection.execute("DELETE FROM chats", &[]).await?;
+        let n2 = &connection.execute("DELETE FROM vehicles", &[]).await?;
+
+        log::error!("Cleared {} chats | {} vehicles", n1, n2);
+
+        Ok((*n1, *n2))
     }
 
     async fn populate_database() -> Result<(), BotDbError> {
@@ -695,5 +725,59 @@ mod db_tests {
         let active: bool = row.get(0);
         assert!(!active);
         assert_eq!(n, 1);
+    }
+
+    #[tokio::test]
+    async fn test_get_active_subscriptions_from_vehicle() {
+        let (n_chats, n_vehicles) = clear_database().await.unwrap();
+        // Clear and populate the database with test data
+        log::error!("Cleared {} chats | {} vehicles", n_chats, n_vehicles);
+        populate_database().await.unwrap();
+
+        let db_controller = Repo::new_no_tls().await.unwrap();
+        let connection = db_controller.get_connection().get().await.unwrap();
+
+        // Setup a test vehicle with specific subscribers, some active and some inactive
+        let vehicle_plate = "XYZ987";
+        let subscribers_ids = "1,2,3,4"; // Assuming IDs 1, 2, 3, 4 are in the chats table
+
+        // Insert the vehicle with subscribers
+        connection
+            .execute(
+                "INSERT INTO vehicles (plate, subscribers_ids) VALUES ($1, $2)",
+                &[&vehicle_plate, &subscribers_ids],
+            )
+            .await
+            .unwrap();
+
+        // Set chat active states
+        db_controller
+            .modify_active_chat(&1_i64, true)
+            .await
+            .unwrap();
+        db_controller
+            .modify_active_chat(&2_i64, false)
+            .await
+            .unwrap();
+        db_controller
+            .modify_active_chat(&3_i64, true)
+            .await
+            .unwrap();
+        db_controller
+            .modify_active_chat(&4_i64, false)
+            .await
+            .unwrap();
+
+        // Call the method to test: it should only return IDs 1 and 3
+        let active_chats = db_controller
+            .get_active_subscriptions_from_vehicle(vehicle_plate)
+            .await
+            .unwrap();
+
+        // Convert active_chats to a Vec of IDs for easier comparison
+        let active_chat_ids: Vec<i64> = active_chats.into_iter().map(|chat| chat.id).collect();
+
+        // Assert the result matches the expected active chat IDs
+        assert_eq!(active_chat_ids, vec![1, 3]);
     }
 }

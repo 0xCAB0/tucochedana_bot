@@ -6,7 +6,16 @@ use crate::{
 
 impl UpdateProcessor {
     pub async fn start_fetch(&self) -> Result<TaskToManage, BotError> {
-        //Set chat as active
+        if self.chat.active {
+            self.api
+                .send_message_without_reply(
+                    self.chat.id,
+                    "Las alertas ya han sido activadas".to_string(),
+                )
+                .await?;
+            return Ok(TaskToManage::NoTask);
+        }
+
         self.repo.modify_active_chat(&self.chat.id, true).await?;
 
         let Some(subbs) = &self.chat.subscribed_vehicles else {
@@ -21,8 +30,8 @@ impl UpdateProcessor {
 
         let mut tasks = vec![];
 
-        for sub in subbs.split(',') {
-            let task = FetchTask::builder().plate(sub.to_string()).build();
+        for sub_vehicles in subbs.split(',') {
+            let task = FetchTask::builder().plate(sub_vehicles.to_string()).build();
             tasks.push(task);
         }
 

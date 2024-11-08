@@ -16,12 +16,12 @@ impl UpdateProcessor {
         vehicles.into_iter().enumerate().for_each(|(num, vehicle)| {
             rows.push(vec![]);
 
-            rows[num - 1].push((
+            rows[num].push((
                 vehicle.plate.clone(),
                 format!("/check_vehicle {}", vehicle.plate),
             ));
 
-            rows[num - 1].push((
+            rows[num].push((
                 DELETE_EMOJI.to_string(),
                 format!("/delete_profile {}", vehicle.plate),
             ));

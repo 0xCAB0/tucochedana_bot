@@ -243,13 +243,15 @@ impl UpdateProcessor {
         }
     }
 
-    async fn remove_tasks(mut subscribers: String) -> Result<(), BotError> {
+    async fn remove_tasks(mut subscriptions: String) -> Result<(), BotError> {
         let repo = Repo::repo().await?;
 
-        subscribers.pop();
+        subscriptions.pop();
 
-        for chat_id in subscribers.split(',') {
-            repo.delete_tasks_by_plate(chat_id).await?;
+        for plate in subscriptions.split(',') {
+            if repo.subscribers_by_plate(plate).await? == 1 {
+                repo.delete_tasks_by_plate(plate).await?;
+            }
         }
 
         Ok(())

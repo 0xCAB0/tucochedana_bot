@@ -1,7 +1,5 @@
 use crate::{
-    db::model::vehicle::{self, Vehicle},
-    update_handler::process_update::UpdateProcessor,
-    BotError,
+    db::model::vehicle::Vehicle, update_handler::process_update::UpdateProcessor, BotError,
 };
 
 const VEHICLE_INFO: &str = "Información más reciente sobre el vehículo";
@@ -13,7 +11,7 @@ impl UpdateProcessor {
         let plate: &str = iter.next().unwrap();
         let vehicle: Vehicle = self.repo.get_vehicle(plate).await?;
 
-        let rows = vec![vec![("🆗", "/create_edit_profile")]];
+        let rows = vec![vec![("⬅️ Back".to_string(), "/start_back".to_string())]];
 
         let vec = Self::texts_to_buttons(rows, false);
 

@@ -4,7 +4,6 @@ use crate::telegram::client::ApiClient;
 use crate::tucochedana::client::TuCocheDanaClient;
 use crate::{BotError, FETCH_IN_MINUTES, MAX_RETRIES, TASK_NAME};
 
-use chrono::{DateTime, Datelike, Timelike, Utc};
 use fang::{
     async_trait, typetag, AsyncQueueable, AsyncRunnable, Deserialize, FangError, Scheduled,
     Serialize,
@@ -34,13 +33,15 @@ impl AsyncRunnable for FetchTask {
             return Err(BotError::FetchTaskError(err).into());
         }
 
-        let subscribers = repo.get_subscriptions_from_vehicle(&self.plate).await?;
+        let subscribers = repo
+            .get_active_subscriptions_from_vehicle(&self.plate) // Only create tasks for active users
+            .await?;
 
         if vehicle.found_at.is_some() {
             for sub in subscribers {
                 telegram
                     .send_message_without_reply(
-                        sub,
+                        sub.id,
                         format!(
                             "El coche {} se encontró el {}",
                             self.plate,
@@ -64,7 +65,7 @@ impl AsyncRunnable for FetchTask {
                 repo.modify_found_at_vehicle(&self.plate, found_at).await?;
                 for sub in subscribers {
                     telegram
-                        .send_message_without_reply(sub, vehicle.datetime_to_text())
+                        .send_message_without_reply(sub.id, vehicle.datetime_to_text())
                         .await?;
                 }
                 repo.delete_tasks_by_plate(&self.plate).await?;
@@ -75,7 +76,7 @@ impl AsyncRunnable for FetchTask {
     }
 
     fn uniq(&self) -> bool {
-        true
+        true //Solo una tarea por vehículo
     }
 
     fn cron(&self) -> Option<Scheduled> {
