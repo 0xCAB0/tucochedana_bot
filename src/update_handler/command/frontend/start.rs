@@ -16,7 +16,7 @@ impl UpdateProcessor {
 
         if self.is_first {
             self.api
-                .send_message_without_reply(self.chat.id, WELCOME_MESSAGE.to_string())
+                .send_message_without_reply(self.chat.id, WELCOME_MESSAGE)
                 .await?;
         }
 

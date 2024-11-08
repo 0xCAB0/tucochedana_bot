@@ -231,11 +231,11 @@ impl ApiClient {
     pub async fn send_message_without_reply(
         &self,
         chat_id: i64,
-        text: String,
+        text: impl Into<String>,
     ) -> Result<MethodResponse<Message>, ApiError> {
         let send_message_params = SendMessageParams::builder()
             .chat_id(chat_id)
-            .text(text)
+            .text(text.into())
             .parse_mode(ParseMode::Html)
             .build();
 

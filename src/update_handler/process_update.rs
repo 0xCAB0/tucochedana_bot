@@ -9,12 +9,12 @@ use crate::telegram::client::ApiClient;
 use crate::BotError;
 
 use super::command::Command;
+use bon::Builder;
 use fang::{AsyncQueue, AsyncQueueable, NoTls};
 use frankenstein::{
     InlineKeyboardMarkup, MaybeInaccessibleMessage, Message, Update, UpdateContent,
 };
 use tokio::sync::Mutex;
-use typed_builder::TypedBuilder;
 
 pub const SELECT_COMMAND_TEXT: &str = "Seleccione un comando";
 
@@ -27,7 +27,7 @@ pub enum TaskToManage {
 }
 
 /// Telegram's Update event handler
-#[derive(TypedBuilder)]
+#[derive(Builder)]
 pub struct UpdateProcessor {
     pub api: &'static ApiClient,
     pub repo: &'static Repo,
@@ -125,10 +125,10 @@ impl UpdateProcessor {
             .api(api)
             .message_id(message.message_id)
             .text(text.clone())
-            .callback_data(callback_data)
+            .maybe_callback_data(callback_data)
             .chat(chat)
             .command(command)
-            .inline_keyboard(keyboard)
+            .maybe_inline_keyboard(keyboard)
             .is_first(is_first)
             .build();
 
@@ -218,7 +218,7 @@ impl UpdateProcessor {
             }
 
             Command::AddVehicleMessage => {
-                self.add_vehicle_promt().await?;
+                self.add_vehicle_prompt().await?;
                 Ok(TaskToManage::NoTask)
             }
 

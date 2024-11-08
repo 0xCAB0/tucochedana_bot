@@ -4,11 +4,11 @@ version = "0.1.0"
 edition = "2021"
 rust-version = "1.80"
 
-# Starting in Rust 1.62 you can use `cargo add` to add dependencies 
+# Starting in Rust 1.80 you can use `cargo add` to add dependencies
 # to your project.
 #
 # If you're using an older Rust version,
-# download cargo-edit(https://github.com/killercup/cargo-edit#installation) 
+# download cargo-edit(https://github.com/killercup/cargo-edit#installation)
 # to install the `add` subcommand.
 #
 # Running `cargo add DEPENDENCY_NAME` will
@@ -29,7 +29,7 @@ fang = { version = "0.10", features = [
     "derive-error",
 ], default-features = false }
 tokio = { version = "1", features = ["full"] }
-typed-builder = "0.20.X"
+bon = "2.3.0"
 lazy_static = "1.4.0"
 bb8-postgres = "0.8.1"
 postgres-types = { version = "0.2.5", features = ["derive"] }

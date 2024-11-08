@@ -438,8 +438,8 @@ mod db_tests {
         // Insert chats if not exists, conflict on `id`
         connection
             .execute(
-                "INSERT INTO chats (id, user_id, username, language_code, subscribed_vehicles) 
-    VALUES ($1, $2, $3, $4, $5) 
+                "INSERT INTO chats (id, user_id, username, language_code, subscribed_vehicles)
+    VALUES ($1, $2, $3, $4, $5)
     ON CONFLICT (id) DO NOTHING",
                 &[
                     &1_i64,
@@ -453,8 +453,8 @@ mod db_tests {
 
         connection
             .execute(
-                "INSERT INTO chats (id, user_id, username, language_code, subscribed_vehicles) 
-    VALUES ($1, $2, $3, $4, $5) 
+                "INSERT INTO chats (id, user_id, username, language_code, subscribed_vehicles)
+    VALUES ($1, $2, $3, $4, $5)
     ON CONFLICT (id) DO NOTHING",
                 &[
                     &2_i64,
@@ -468,8 +468,8 @@ mod db_tests {
 
         connection
             .execute(
-                "INSERT INTO chats (id, user_id, username, language_code) 
-    VALUES ($1, $2, $3, $4) 
+                "INSERT INTO chats (id, user_id, username, language_code)
+    VALUES ($1, $2, $3, $4)
     ON CONFLICT (id) DO NOTHING",
                 &[
                     &3_i64,
@@ -483,8 +483,8 @@ mod db_tests {
         // Insert vehicles if not exists, conflict on `plate`
         connection
             .execute(
-                "INSERT INTO vehicles (plate, subscribers_ids) 
-    VALUES ($1, $2) 
+                "INSERT INTO vehicles (plate, subscribers_ids)
+    VALUES ($1, $2)
     ON CONFLICT (plate) DO NOTHING",
                 &[&"ABC123", &"1,"],
             )
@@ -492,8 +492,8 @@ mod db_tests {
 
         connection
             .execute(
-                "INSERT INTO vehicles (plate, subscribers_ids) 
-    VALUES ($1, $2) 
+                "INSERT INTO vehicles (plate, subscribers_ids)
+    VALUES ($1, $2)
     ON CONFLICT (plate) DO NOTHING",
                 &[&"DEF456", &"1,2,"],
             )
@@ -501,8 +501,8 @@ mod db_tests {
 
         connection
             .execute(
-                "INSERT INTO vehicles (plate) 
-    VALUES ($1) 
+                "INSERT INTO vehicles (plate)
+    VALUES ($1)
     ON CONFLICT (plate) DO NOTHING",
                 &[&"GHI789"],
             )
@@ -615,13 +615,13 @@ mod db_tests {
         let expected_subscriptions = vec![
             Vehicle::builder()
                 .plate("ABC123".to_string())
-                .subscribers_ids(Some(String::from("1,")))
-                .found_at(None)
+                .maybe_subscribers_ids(Some(String::from("1,")))
+                .maybe_found_at(None)
                 .build(),
             Vehicle::builder()
                 .plate("DEF456".to_string())
-                .subscribers_ids(Some(String::from("1,2,")))
-                .found_at(None)
+                .maybe_subscribers_ids(Some(String::from("1,2,")))
+                .maybe_found_at(None)
                 .build(),
         ];
         let testing_chat = 1;

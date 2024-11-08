@@ -8,10 +8,7 @@ impl UpdateProcessor {
     pub async fn start_fetch(&self) -> Result<TaskToManage, BotError> {
         if self.chat.active {
             self.api
-                .send_message_without_reply(
-                    self.chat.id,
-                    "Las alertas ya han sido activadas".to_string(),
-                )
+                .send_message_without_reply(self.chat.id, "Las alertas ya han sido activadas")
                 .await?;
             return Ok(TaskToManage::NoTask);
         }
@@ -22,7 +19,7 @@ impl UpdateProcessor {
             self.api
                 .send_message_without_reply(
                     self.chat.id,
-                    "Debe añadir vehículos para activar las alertas".to_string(),
+                    "Debe añadir vehículos para activar las alertas",
                 )
                 .await?;
             return Ok(TaskToManage::NoTask);
@@ -35,7 +32,7 @@ impl UpdateProcessor {
             tasks.push(task);
         }
 
-        self.api.send_message_without_reply(self.chat.id, format!("Alerta activada correctamente, le avisaremos si se registra alguno de sus vehículos")).await?;
+        self.api.send_message_without_reply(self.chat.id, "Alerta activada correctamente, le avisaremos si se registra alguno de sus vehículos").await?;
 
         self.start_message(SELECT_COMMAND_TEXT).await?;
 

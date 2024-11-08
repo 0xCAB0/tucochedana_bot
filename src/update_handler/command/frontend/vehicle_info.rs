@@ -8,6 +8,8 @@ impl UpdateProcessor {
     pub async fn vehicle_info(&self) -> Result<(), BotError> {
         let mut iter = self.get_parse_iterator();
 
+        // TODO: gestionar el estado si el comando no le han pasado una matricula de un vehiculo.
+        // Preguntar otra vez por la matricula
         let plate: &str = iter.next().unwrap();
         let vehicle: Vehicle = self.repo.get_vehicle(plate).await?;
 

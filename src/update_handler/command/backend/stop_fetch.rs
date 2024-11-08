@@ -7,10 +7,7 @@ impl UpdateProcessor {
     pub async fn stop_fetch(&self) -> Result<TaskToManage, BotError> {
         if !self.chat.active {
             self.api
-                .send_message_without_reply(
-                    self.chat.id,
-                    "Las alertas ya han sido desactivadas".to_string(),
-                )
+                .send_message_without_reply(self.chat.id, "Las alertas ya han sido desactivadas")
                 .await?;
             return Ok(TaskToManage::NoTask);
         }
