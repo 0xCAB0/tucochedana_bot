@@ -9,12 +9,27 @@ impl UpdateProcessor {
         //Set chat as active
         self.repo.modify_active_chat(&self.chat.id, true).await?;
 
-        let task = FetchTask::builder().chat_id(self.chat.id).build();
+        let Some(subbs) = &self.chat.subscribed_vehicles else {
+            self.api
+                .send_message_without_reply(
+                    self.chat.id,
+                    "Debe añadir vehículos para activar las alertas".to_string(),
+                )
+                .await?;
+            return Ok(TaskToManage::NoTask);
+        };
+
+        let mut tasks = vec![];
+
+        for sub in subbs.split(',') {
+            let task = FetchTask::builder().plate(sub.to_string()).build();
+            tasks.push(task);
+        }
 
         //For all subscribed vehicles, try create a fetch Task
 
         //The task should handle notifying all the subscribed users
 
-        Ok(TaskToManage::FetchTask(task))
+        Ok(TaskToManage::FetchTasks(tasks))
     }
 }

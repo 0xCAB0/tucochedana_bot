@@ -630,7 +630,7 @@ mod db_tests {
             .unwrap();
 
         let active: bool = row.get(0);
-        assert_eq!(active, true);
+        assert!(active);
         assert_eq!(n, 1);
 
         // Test for setting the vehicle as inactive
@@ -646,7 +646,7 @@ mod db_tests {
             .unwrap();
 
         let active: bool = row.get(0);
-        assert_eq!(active, false);
+        assert!(!active);
         assert_eq!(n, 1);
     }
 
@@ -672,7 +672,7 @@ mod db_tests {
             .unwrap();
 
         let active: bool = row.get(0);
-        assert_eq!(active, true);
+        assert!(active);
         assert_eq!(n, 1);
 
         // Test for setting the chat as inactive
@@ -688,7 +688,7 @@ mod db_tests {
             .unwrap();
 
         let active: bool = row.get(0);
-        assert_eq!(active, false);
+        assert!(!active);
         assert_eq!(n, 1);
     }
 }
