@@ -1,10 +1,10 @@
 use crate::BotError;
 
-pub const START_OPTIONS_1: &str = "Menu perfiles";
+pub const START_OPTIONS_1: &str = "Añadir un vehículo";
+pub const START_OPTIONS_1_2: &str = "Mis vehículos";
 pub const START_OPTIONS_2: &str = "Activar alerta";
 pub const START_OPTIONS_3: &str = "Desactivar alerta";
 pub const START_OPTIONS_4: &str = "Ayuda";
-pub const START_OPTIONS_1_2: &str = "Mis vehículos";
 
 pub const WELCOME_MESSAGE: &str = "¡Bienvenido!";
 

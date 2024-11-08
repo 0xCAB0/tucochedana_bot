@@ -26,7 +26,10 @@ impl UpdateProcessor {
                 format!("/delete_profile {}", vehicle.plate),
             ));
         });
-        rows.push(vec![(ADD_VEHICLE.to_string(), "/add_vehicle".to_string())]);
+        rows.push(vec![(
+            ADD_VEHICLE.to_string(),
+            "/add_vehicle_message".to_string(),
+        )]);
         rows.push(vec![("⬅️ Back".to_string(), "/start_back".to_string())]);
 
         let vec = Self::texts_to_buttons(rows, false);

@@ -2,7 +2,7 @@ use crate::{update_handler::process_update::UpdateProcessor, BotError};
 
 impl UpdateProcessor {
     pub async fn add_vehicle(&self) -> Result<(), BotError> {
-        let plate = self.chat.selected_text.as_ref().unwrap();
+        let plate = &self.text;
 
         // let text = if self.repo.insert_vehicle(plate).await.is_ok() {
         //     format!("Vehículo {plate} añadido")
