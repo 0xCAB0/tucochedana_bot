@@ -37,6 +37,7 @@ pub struct UpdateProcessor {
     pub inline_keyboard: Option<Box<InlineKeyboardMarkup>>,
     pub command: Command,
     pub chat: Chat,
+    pub is_first: bool,
 }
 
 impl UpdateProcessor {
@@ -105,7 +106,7 @@ impl UpdateProcessor {
             None => user.first_name,
         };
 
-        let chat = repo
+        let (chat, is_first) = repo
             .find_or_create_chat(&chat_id, user.id, &username, &user.language_code)
             .await?;
 
@@ -128,6 +129,7 @@ impl UpdateProcessor {
             .chat(chat)
             .command(command)
             .inline_keyboard(keyboard)
+            .is_first(is_first)
             .build();
 
         Ok(processor)

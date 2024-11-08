@@ -97,23 +97,24 @@ impl Repo {
         Ok(n == 1)
     }
 
+    /// Returns if it has been created
     pub async fn find_or_create_chat(
         &self,
         chat_id: &i64,
         user_id: u64,
         username: &str,
         language_code: &Option<String>,
-    ) -> Result<Chat, BotDbError> {
+    ) -> Result<(Chat, bool), BotDbError> {
         if self.check_user_exists(chat_id).await? {
             let chat = self.get_chat(chat_id).await?;
 
-            Ok(chat)
+            Ok((chat, false))
         } else {
             let chat = self
                 .insert_chat(chat_id, user_id, username, language_code)
                 .await?;
 
-            Ok(chat)
+            Ok((chat, false))
         }
     }
 
