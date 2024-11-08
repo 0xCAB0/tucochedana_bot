@@ -74,6 +74,7 @@ jobs:
       - name: Run tests
         env:
           DATABASE_URL: "postgres://postgres:postgres@localhost/tu-coche-dana-bot"
+          BOT_NAME: "testing_bot"
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         uses: actions-rs/cargo@v1
         with:
