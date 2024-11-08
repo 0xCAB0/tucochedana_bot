@@ -100,6 +100,8 @@ jobs:
           toolchain: stable
 
       - name: Build release
+        env:
+          BOT_NAME: tu-coche-dana-bot
         uses: actions-rs/cargo@v1
         with:
           command: build
