@@ -5,11 +5,11 @@ use crate::{
 
 impl UpdateProcessor {
     pub async fn stop_fetch(&self) -> Result<TaskToManage, BotError> {
-        if self.chat.active {
+        if !self.chat.active {
             self.api
                 .send_message_without_reply(
                     self.chat.id,
-                    "Las alertas ya han sido activadas".to_string(),
+                    "Las alertas ya han sido desactivadas".to_string(),
                 )
                 .await?;
             return Ok(TaskToManage::NoTask);
