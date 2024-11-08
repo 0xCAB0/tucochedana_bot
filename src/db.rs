@@ -16,6 +16,8 @@ pub enum BotDbError {
     CityNotFoundError,
     #[error("No timestamps that match with this cron expression")]
     NoTimestampsError,
+    #[error("Chat {0} already subscribed to vehicle '{1}'")]
+    AlreadySubscribedError(i64, String),
 }
 
 pub use repo::Repo;

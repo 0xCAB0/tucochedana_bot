@@ -1,0 +1,1 @@
+UPDATE vehicle SET chat_ids = $1 WHERE id = $2

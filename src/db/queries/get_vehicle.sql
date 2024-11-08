@@ -1,0 +1,1 @@
+SELECT * FROM vehicle WHERE plate = $1

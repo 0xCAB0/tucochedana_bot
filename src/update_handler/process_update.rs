@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::str::{FromStr, SplitAsciiWhitespace};
 use std::sync::Arc;
 
 use crate::db::model::client_state::ClientState;
@@ -17,15 +17,6 @@ use tokio::sync::Mutex;
 use typed_builder::TypedBuilder;
 
 pub const SELECT_COMMAND_TEXT: &str = "Seleccione un comando";
-
-// lazy_static! {
-//     static ref QUEUE: Mutex<AsyncQueue<NoTls>> = Mutex::new(
-//         AsyncQueue::builder()
-//             .uri(DATABASE_URL.clone())
-//             .max_pool_size(1_u32)
-//             .build()
-//     );
-// }
 
 #[derive(Debug, Clone)]
 pub enum TaskToManage {
@@ -49,6 +40,16 @@ pub struct UpdateProcessor {
 }
 
 impl UpdateProcessor {
+    pub fn get_parse_iterator(&self) -> SplitAsciiWhitespace<'_> {
+        let mut iter = self
+            .callback_data
+            .as_ref()
+            .unwrap()
+            .split_ascii_whitespace();
+        iter.next();
+        iter
+    }
+
     async fn create(update: &Update) -> Result<Self, BotError> {
         let repo = Repo::repo().await?;
         let api = ApiClient::api_client().await;
@@ -179,8 +180,6 @@ impl UpdateProcessor {
     }
 
     async fn process(&self) -> Result<TaskToManage, BotError> {
-        //self.send_typing().await?;
-
         if Command::Cancel == self.command {
             self.cancel(None).await?;
             return Ok(TaskToManage::NoTask);
@@ -191,7 +190,7 @@ impl UpdateProcessor {
 
             ClientState::AddVehicle => {
                 if let Command::UnknownCommand(_) = self.command {
-                    //self.edit_profile_name().await?;
+                    self.add_vehicle().await?;
                 }
                 Ok(TaskToManage::NoTask)
             }
@@ -215,10 +214,8 @@ impl UpdateProcessor {
                 Ok(TaskToManage::NoTask)
             }
 
-            Command::AddVehicle => {
-                if let Command::UnknownCommand(_) = self.command {
-                    self.add_vehicle_message().await?;
-                }
+            Command::AddVehicleMessage => {
+                self.add_vehicle_promt().await?;
                 Ok(TaskToManage::NoTask)
             }
 

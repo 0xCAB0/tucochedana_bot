@@ -9,6 +9,7 @@ use super::process_update::UpdateProcessor;
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum Command {
     AddVehicle,
+    AddVehicleMessage,
     MyAddedVehicles,
     StartFetch,
     StopFetch,
@@ -30,6 +31,7 @@ impl FromStr for Command {
             "/help" => Command::Help,
             "/start_back" => Command::StartBack,
             "/add_vehicle" => Command::AddVehicle,
+            "/add_vehicle_message" => Command::AddVehicleMessage,
             "/get_my_vehicles" => Command::MyAddedVehicles,
             "/start_fetch" => Command::StartFetch,
             "/stop_fetch" => Command::StopFetch,
@@ -43,7 +45,6 @@ impl FromStr for Command {
 pub mod backend {
     pub mod add_vehicle;
     pub mod cancel;
-    pub mod get_vehicles;
     pub mod start_fetch;
     pub mod stop_fetch;
 }
@@ -59,7 +60,6 @@ impl UpdateProcessor {
         self.repo
             .modify_state(&self.chat.id, ClientState::Initial)
             .await?;
-
         Ok(())
     }
 

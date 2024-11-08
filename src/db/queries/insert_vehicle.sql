@@ -1,0 +1,1 @@
+INSERT INTO vehicle (plate, chat_ids) VALUES ($1) RETURNING *;

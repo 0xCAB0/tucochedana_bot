@@ -25,7 +25,6 @@ async fn parse_update(
     State(state): State<Arc<Mutex<AsyncQueue<NoTls>>>>,
     Json(update): Json<Update>,
 ) -> axum::response::Result<()> {
-    log::info!("New update -> {:#?}", update);
     UpdateProcessor::run(&update, state).await?;
     Ok(())
 }
