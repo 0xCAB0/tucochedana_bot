@@ -375,33 +375,42 @@ mod db_tests {
         let connection = db_controller.get_connection().get().await?;
 
         // Insert 3 test users into the `chats` table using connection.execute
+        // Insert chats if not exists, conflict on `id`
         connection
             .execute(
-                "INSERT INTO chats (id, user_id, username, language_code, subscribed_vehicles) VALUES ($1, $2, $3, $4, $5)",
+                "INSERT INTO chats (id, user_id, username, language_code, subscribed_vehicles) 
+    VALUES ($1, $2, $3, $4, $5) 
+    ON CONFLICT (id) DO NOTHING",
                 &[
                     &1_i64,
                     &123456_u64.to_le_bytes().to_vec(),
                     &"user1",
                     &Some("en".to_string()),
-                    &"ABC123,DEF456,"
+                    &"ABC123,DEF456,",
                 ],
             )
             .await?;
+
         connection
             .execute(
-                "INSERT INTO chats (id, user_id, username, language_code, subscribed_vehicles) VALUES ($1, $2, $3, $4, $5)",
+                "INSERT INTO chats (id, user_id, username, language_code, subscribed_vehicles) 
+    VALUES ($1, $2, $3, $4, $5) 
+    ON CONFLICT (id) DO NOTHING",
                 &[
                     &2_i64,
                     &234567_u64.to_le_bytes().to_vec(),
                     &"user2",
                     &Some("fr".to_string()),
-                    &"DEF456,"
+                    &"DEF456,",
                 ],
             )
             .await?;
+
         connection
             .execute(
-                "INSERT INTO chats (id, user_id, username, language_code) VALUES ($1, $2, $3, $4)",
+                "INSERT INTO chats (id, user_id, username, language_code) 
+    VALUES ($1, $2, $3, $4) 
+    ON CONFLICT (id) DO NOTHING",
                 &[
                     &3_i64,
                     &345678_u64.to_le_bytes().to_vec(),
@@ -411,25 +420,37 @@ mod db_tests {
             )
             .await?;
 
-        // Insert 3 test vehicles into the `vehicles` table using connection.execute
+        // Insert vehicles if not exists, conflict on `plate`
         connection
             .execute(
-                "INSERT INTO vehicles (plate, subscribers_ids) VALUES ($1, $2)",
+                "INSERT INTO vehicles (plate, subscribers_ids) 
+    VALUES ($1, $2) 
+    ON CONFLICT (plate) DO NOTHING",
                 &[&"ABC123", &"1,"],
             )
             .await?;
+
         connection
             .execute(
-                "INSERT INTO vehicles (plate, subscribers_ids) VALUES ($1, $2)",
+                "INSERT INTO vehicles (plate, subscribers_ids) 
+    VALUES ($1, $2) 
+    ON CONFLICT (plate) DO NOTHING",
                 &[&"DEF456", &"1,2,"],
             )
             .await?;
+
         connection
-            .execute("INSERT INTO vehicles (plate) VALUES ($1)", &[&"GHI789"])
+            .execute(
+                "INSERT INTO vehicles (plate) 
+    VALUES ($1) 
+    ON CONFLICT (plate) DO NOTHING",
+                &[&"GHI789"],
+            )
             .await?;
 
         Ok(())
     }
+
     #[tokio::test]
     async fn test_modify_state() {
         clear_database().await.unwrap();
@@ -536,11 +557,13 @@ mod db_tests {
                 .plate("ABC123".to_string())
                 .subscribers_ids(Some(String::from("1,")))
                 .found_at(None)
+                .active(false)
                 .build(),
             Vehicle::builder()
                 .plate("DEF456".to_string())
                 .subscribers_ids(Some(String::from("1,2,")))
                 .found_at(None)
+                .active(false)
                 .build(),
         ];
         let testing_chat = 1;

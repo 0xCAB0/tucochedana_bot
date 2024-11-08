@@ -24,6 +24,7 @@ CREATE TABLE chats (
 CREATE TABLE vehicles (
     plate VARCHAR,
     subscribers_ids TEXT,
+    active BOOLEAN DEFAULT FALSE,
     found_at TIMESTAMP WITH TIME ZONE,
     PRIMARY KEY (plate)
 );

@@ -1,1 +1,1 @@
-UPDATE vehicles SET chat_ids = $1 WHERE id = $2
+UPDATE vehicles SET subscribers_ids = $1 WHERE id = $2
