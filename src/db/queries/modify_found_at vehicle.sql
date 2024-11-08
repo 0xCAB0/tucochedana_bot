@@ -1,0 +1,1 @@
+UPDATE vehicles SET found_at = $1 WHERE plate = $2

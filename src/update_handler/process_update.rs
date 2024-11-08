@@ -244,7 +244,7 @@ impl UpdateProcessor {
         subscribers.pop();
 
         for chat_id in subscribers.split(',') {
-            repo.delete_tasks_by_chat_id(chat_id).await?;
+            repo.delete_tasks_by_plate(chat_id).await?;
         }
 
         Ok(())

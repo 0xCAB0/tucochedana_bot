@@ -20,15 +20,12 @@ impl UpdateProcessor {
         };
 
         let mut tasks = vec![];
+        //For all subscribed vehicles, try create a fetch Task
 
         for sub in subbs.split(',') {
             let task = FetchTask::builder().plate(sub.to_string()).build();
             tasks.push(task);
         }
-
-        //For all subscribed vehicles, try create a fetch Task
-
-        //The task should handle notifying all the subscribed users
 
         Ok(TaskToManage::FetchTasks(tasks))
     }

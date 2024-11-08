@@ -1,1 +1,0 @@
-UPDATE vehicles SET active = $1 WHERE plate = $2

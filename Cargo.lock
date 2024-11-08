@@ -2334,6 +2334,7 @@ dependencies = [
  "openssl",
  "postgres-types",
  "pretty_env_logger",
+ "rand",
  "regex",
  "serde",
  "serde_json",

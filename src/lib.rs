@@ -83,6 +83,8 @@ pub enum BotError {
     HttpError(#[from] std::io::Error),
     #[error(transparent)]
     AsyncQueueError(#[from] AsyncQueueError),
+    #[error("Bad Fetch Task: {}", self)]
+    FetchTaskError(String),
 }
 
 #[derive(Debug, Error)]

@@ -27,15 +27,14 @@ const GET_VEHICLE: &str = include_str!("queries/get_vehicle.sql");
 const GET_VEHICLES: &str = include_str!("queries/get_vehicles.sql");
 const MODIFY_STATE: &str = include_str!("queries/modify_state.sql");
 const MODIFY_ACTIVE_CHAT: &str = include_str!("queries/modify_active_chat.sql");
-const MODIFY_ACTIVE_VEHICLE: &str = include_str!("queries/modify_active vehicle.sql");
+const MODIFY_FOUND_AT_VEHICLE: &str = include_str!("queries/modify_found_at vehicle.sql");
 const CONCANT_CHAT_TO_SUBSCRIBERS: &str = include_str!("queries/concat_to_subscribers.sql");
 const CONCAT_VEHICLE_TO_SUBSCRIPTIONS: &str =
     include_str!("queries/concat_to_subscribed_vehicles.sql");
 const _DELETE_VEHICLE: &str = include_str!("queries/delete_vehicle.sql");
 const _DELETE_ALL_FANG_TASKS_BY_PROFILE_ID: &str =
     include_str!("queries/delete_all_tasks_by_profile_id.sql");
-const DELETE_FETCH_TASK_BY_CHAT_ID: &str =
-    include_str!("queries/delete_fetch_tasks_by_profile_id.sql");
+const DELETE_FETCH_TASK_BY_PLATE: &str = include_str!("queries/delete_fetch_tasks_by_plate.sql");
 
 const UPDATE_SUBSCRIBED_CHATS: &str = include_str!("queries/update_subscribed_chats.sql");
 
@@ -333,15 +332,15 @@ impl Repo {
         Ok(n)
     }
 
-    pub async fn modify_active_vehicle(
+    pub async fn modify_found_at_vehicle(
         &self,
         plate: &str,
-        new_state: bool,
+        found_at: DateTime<Utc>,
     ) -> Result<u64, BotDbError> {
         let connection = self.pool.get().await?;
 
         let n = connection
-            .execute(MODIFY_ACTIVE_VEHICLE, &[&new_state, &plate])
+            .execute(MODIFY_FOUND_AT_VEHICLE, &[&found_at, &plate])
             .await?;
         Ok(n)
     }
@@ -372,10 +371,10 @@ impl Repo {
         Ok(n)
     }
 
-    pub async fn delete_tasks_by_chat_id(&self, chat_id: &'_ str) -> Result<u64, BotDbError> {
+    pub async fn delete_tasks_by_plate(&self, plate: &str) -> Result<u64, BotDbError> {
         let connection = self.pool.get().await?;
         let n = connection
-            .execute(DELETE_FETCH_TASK_BY_CHAT_ID, &[&chat_id])
+            .execute(DELETE_FETCH_TASK_BY_PLATE, &[&plate])
             .await?;
         Ok(n)
     }
@@ -384,6 +383,9 @@ impl Repo {
 #[cfg(test)]
 mod db_tests {
     use std::ops::Not;
+
+    use chrono::{Duration, Timelike};
+    use rand::Rng;
 
     use super::*;
 
@@ -585,13 +587,11 @@ mod db_tests {
                 .plate("ABC123".to_string())
                 .subscribers_ids(Some(String::from("1,")))
                 .found_at(None)
-                .active(false)
                 .build(),
             Vehicle::builder()
                 .plate("DEF456".to_string())
                 .subscribers_ids(Some(String::from("1,2,")))
                 .found_at(None)
-                .active(false)
                 .build(),
         ];
         let testing_chat = 1;
@@ -608,45 +608,50 @@ mod db_tests {
         }
     }
 
+    fn random_datetime() -> DateTime<Utc> {
+        let now = Utc::now();
+        let mut rng = rand::thread_rng();
+
+        // Generate a random number of days to add/subtract (e.g., -365 to +365)
+        let days = rng.gen_range(-365..365);
+        // Generate random hours and minutes
+        let hours = rng.gen_range(0..24);
+        let minutes = rng.gen_range(0..60);
+
+        // Adjust the datetime by the random amounts
+        let random_time =
+            now + Duration::days(days) + Duration::hours(hours) + Duration::minutes(minutes);
+        random_time
+            .with_nanosecond((random_time.nanosecond() / 1_000) * 1_000)
+            .unwrap()
+    }
+
     // Test for modifying the active state of a vehicle
     #[tokio::test]
-    async fn test_modify_active_vehicle() {
+    async fn test_modify_found_at_vehicle() {
         clear_database().await.unwrap();
         populate_database().await.unwrap();
 
         let db_controller = Repo::new_no_tls().await.unwrap();
         let connection = db_controller.get_connection().get().await.unwrap();
-
+        let test_datetime = random_datetime();
         // Modify the active state of a vehicle
         let n = db_controller
-            .modify_active_vehicle("ABC123", true)
+            .modify_found_at_vehicle("ABC123", test_datetime)
             .await
             .unwrap();
 
         // Verify that the vehicle's active state was updated
         let row = connection
-            .query_one("SELECT active FROM vehicles WHERE plate = $1", &[&"ABC123"])
+            .query_one(
+                "SELECT found_at FROM vehicles WHERE plate = $1",
+                &[&"ABC123"],
+            )
             .await
             .unwrap();
 
-        let active: bool = row.get(0);
-        assert!(active);
-        assert_eq!(n, 1);
-
-        // Test for setting the vehicle as inactive
-        let n = db_controller
-            .modify_active_vehicle("ABC123", false)
-            .await
-            .unwrap();
-
-        // Verify the state after modifying it to inactive
-        let row = connection
-            .query_one("SELECT active FROM vehicles WHERE plate = $1", &[&"ABC123"])
-            .await
-            .unwrap();
-
-        let active: bool = row.get(0);
-        assert!(!active);
+        let active: DateTime<Utc> = row.get(0);
+        assert_eq!(active, test_datetime);
         assert_eq!(n, 1);
     }
 
