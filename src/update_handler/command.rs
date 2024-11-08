@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use super::process_update::UpdateProcessor;
 
-/// Avalible bots commands as a Enum
+/// Available bots commands as a Enum
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum Command {
     RemoveVehicle,
@@ -46,6 +46,16 @@ impl FromStr for Command {
     }
 }
 
+/*
+Creo que la siguiente estructura de ficheros estaria mejor.
+
+pub mod add_vehicle {
+
+pub mod frontend;
+pub mod backend;
+};
+
+*/
 pub mod backend {
     pub mod add_vehicle;
     pub mod cancel;

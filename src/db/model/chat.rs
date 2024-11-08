@@ -1,11 +1,11 @@
 use bb8_postgres::tokio_postgres::Row;
-use typed_builder::TypedBuilder;
+use bon::Builder;
 
 use crate::db::Repo;
 
 use super::client_state::ClientState;
 
-#[derive(Debug, Clone, TypedBuilder)]
+#[derive(Debug, Clone, Builder)]
 pub struct Chat {
     pub id: i64,
     pub user_id: u64,
@@ -29,10 +29,10 @@ impl From<Row> for Chat {
             .user_id(user_id)
             .username(row.get("username"))
             .state(row.get("state"))
-            .selected_text(row.try_get("selected_text").ok())
-            .subscribed_vehicles(row.try_get("subscribed_vehicles").ok())
+            .maybe_selected_text(row.try_get("selected_text").ok())
+            .maybe_subscribed_vehicles(row.try_get("subscribed_vehicles").ok())
             .active(row.get("active"))
-            .language_code(row.try_get("language_code").ok())
+            .maybe_language_code(row.try_get("language_code").ok())
             .build()
     }
 }

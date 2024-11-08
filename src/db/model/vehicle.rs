@@ -1,9 +1,9 @@
 use bb8_postgres::tokio_postgres::Row;
+use bon::Builder;
 use chrono::{DateTime, Datelike, Timelike, Utc};
 use std::fmt::Debug;
-use typed_builder::TypedBuilder;
 
-#[derive(Debug, Clone, TypedBuilder)]
+#[derive(Debug, Clone, Builder)]
 pub struct Vehicle {
     pub plate: String,
     pub subscribers_ids: Option<String>,
@@ -15,8 +15,8 @@ impl From<Row> for Vehicle {
     fn from(row: Row) -> Vehicle {
         Vehicle::builder()
             .plate(row.get("plate"))
-            .subscribers_ids(row.try_get("subscribers_ids").ok())
-            .found_at(row.try_get("found_at").ok())
+            .maybe_subscribers_ids(row.try_get("subscribers_ids").ok())
+            .maybe_found_at(row.try_get("found_at").ok())
             .build()
     }
 }

@@ -32,7 +32,7 @@ async fn parse_update(
 impl IntoResponse for BotError {
     fn into_response(self) -> axum::response::Response {
         // Customize error response here
-        (StatusCode::BAD_REQUEST, "Error processing update").into_response()
+        (StatusCode::BAD_REQUEST, format!("{self}")).into_response()
     }
 }
 

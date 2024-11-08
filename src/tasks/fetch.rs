@@ -9,9 +9,9 @@ use fang::{
     Serialize,
 };
 
-use typed_builder::TypedBuilder;
+use bon::Builder;
 
-#[derive(Serialize, Deserialize, Debug, TypedBuilder, Eq, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, Builder, Eq, PartialEq, Clone)]
 #[serde(crate = "fang::serde")]
 pub struct FetchTask {
     plate: String,

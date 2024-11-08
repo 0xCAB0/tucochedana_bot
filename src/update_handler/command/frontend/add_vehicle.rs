@@ -6,9 +6,9 @@ pub const ADD_BRAND_MESSAGE_TEXT: &str =
     "Escribe la matrícula del vehículo del que deseas recibir alertas";
 
 impl UpdateProcessor {
-    pub async fn add_vehicle_promt(&self) -> Result<(), BotError> {
+    pub async fn add_vehicle_prompt(&self) -> Result<(), BotError> {
         self.api
-            .send_message_without_reply(self.chat.id, ADD_BRAND_MESSAGE_TEXT.to_owned())
+            .send_message_without_reply(self.chat.id, ADD_BRAND_MESSAGE_TEXT)
             .await?;
 
         self.repo
