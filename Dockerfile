@@ -50,7 +50,7 @@ WORKDIR /bot
 # RUN export BOT_NAME=$(cat bot/target/PACKAGE_NAME) && \
 #     cp bot/target/release/${BOT_NAME} ./
 
-COPY --from=builder /bot/target/release/$(cat bot/target/PACKAGE_NAME) ./
+COPY --from=builder /bot/target/release/tu-coche-dana-bot ./
 
 # Copy additional files
 COPY --from=builder /bot/docker/start.sh ./

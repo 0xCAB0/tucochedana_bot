@@ -230,6 +230,11 @@ impl UpdateProcessor {
 
             Command::StopFetch => self.stop_fetch().await,
 
+            Command::VehicleInfo => {
+                self.vehicle_info().await?;
+                Ok(TaskToManage::NoTask)
+            }
+
             Command::UnknownCommand(string) => {
                 self.unknown_command(string).await?;
                 Ok(TaskToManage::NoTask)

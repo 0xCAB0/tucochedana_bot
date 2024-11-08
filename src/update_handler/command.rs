@@ -11,6 +11,7 @@ pub enum Command {
     AddVehicle,
     AddVehicleMessage,
     MyAddedVehicles,
+    VehicleInfo,
     StartFetch,
     StopFetch,
     Help,
@@ -31,6 +32,7 @@ impl FromStr for Command {
             "/help" => Command::Help,
             "/start_back" => Command::StartBack,
             "/add_vehicle" => Command::AddVehicle,
+            "/vehicle_info" => Command::VehicleInfo,
             "/add_vehicle_message" => Command::AddVehicleMessage,
             "/get_my_vehicles" => Command::MyAddedVehicles,
             "/start_fetch" => Command::StartFetch,
@@ -53,6 +55,7 @@ pub mod frontend {
     pub mod help;
     pub mod list_vehicles;
     pub mod start;
+    pub mod vehicle_info;
 }
 
 impl UpdateProcessor {

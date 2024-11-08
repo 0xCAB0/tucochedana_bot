@@ -26,7 +26,7 @@ impl AsyncRunnable for FetchTask {
 
         let telegram = ApiClient::api_client().await;
 
-        let vehicle = repo.get_vehicle(self.plate.as_str()).await?;
+        let mut vehicle = repo.get_vehicle(self.plate.as_str()).await?;
 
         if vehicle.subscribers_ids.is_none() {
             let err = format!("Running tasks for plate {} with no subscribers", self.plate);
@@ -36,15 +36,15 @@ impl AsyncRunnable for FetchTask {
 
         let subscribers = repo.get_subscriptions_from_vehicle(&self.plate).await?;
 
-        if let Some(found_at_timestamp) = vehicle.found_at {
+        if vehicle.found_at.is_some() {
             for sub in subscribers {
                 telegram
                     .send_message_without_reply(
                         sub,
                         format!(
                             "El coche {} se encontró el {}",
-                            self.plate, // or `vehicle.plate` if accessing from `vehicle`
-                            datetime_to_text(found_at_timestamp)
+                            self.plate,
+                            vehicle.datetime_to_text()
                         ),
                     )
                     .await?;
@@ -60,17 +60,11 @@ impl AsyncRunnable for FetchTask {
         {
             Ok(()) => {
                 let found_at = chrono::Utc::now();
+                vehicle.found_at = Some(found_at);
                 repo.modify_found_at_vehicle(&self.plate, found_at).await?;
                 for sub in subscribers {
                     telegram
-                        .send_message_without_reply(
-                            sub,
-                            format!(
-                                "El coche {} se encontró el {}",
-                                self.plate, // or `vehicle.plate` if accessing from `vehicle`
-                                datetime_to_text(found_at)
-                            ),
-                        )
+                        .send_message_without_reply(sub, vehicle.datetime_to_text())
                         .await?;
                 }
                 repo.delete_tasks_by_plate(&self.plate).await?;
@@ -98,46 +92,4 @@ impl AsyncRunnable for FetchTask {
     fn backoff(&self, attempt: u32) -> u32 {
         u32::pow(2, attempt)
     }
-}
-
-fn datetime_to_text(time: DateTime<Utc>) -> String {
-    // Spanish names for days of the week
-    let days = [
-        "domingo",
-        "lunes",
-        "martes",
-        "miércoles",
-        "jueves",
-        "viernes",
-        "sábado",
-    ];
-    // Spanish names for months
-    let months = [
-        "enero",
-        "febrero",
-        "marzo",
-        "abril",
-        "mayo",
-        "junio",
-        "julio",
-        "agosto",
-        "septiembre",
-        "octubre",
-        "noviembre",
-        "diciembre",
-    ];
-
-    // Get day of the week, day of the month, month, and year
-    let weekday = days[time.weekday().num_days_from_sunday() as usize];
-    let day = time.day();
-    let month = months[(time.month() - 1) as usize];
-    let year = time.year();
-    let hour = time.hour();
-    let minute = time.minute();
-
-    // Format the date as a Spanish-readable string
-    format!(
-        "{}, {} de {} de {}, {:02}:{:02}",
-        weekday, day, month, year, hour, minute
-    )
 }

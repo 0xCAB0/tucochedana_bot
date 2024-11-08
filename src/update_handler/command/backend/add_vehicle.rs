@@ -26,14 +26,12 @@ impl UpdateProcessor {
             format!("El vehículo {plate} ya ha sido añadido previamente")
         };
 
-        let keyboard = *self.inline_keyboard.clone().unwrap();
-
         self.repo
             .modify_state(&self.chat.id, ClientState::Initial)
             .await?;
 
         self.api
-            .edit_or_send_message(self.chat.id, self.message_id, &text, keyboard)
+            .send_message_without_reply(self.chat.id, text)
             .await?;
 
         Ok(())
