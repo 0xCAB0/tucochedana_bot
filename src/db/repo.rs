@@ -495,7 +495,7 @@ mod db_tests {
             .clone()
             .is_some_and(|t| t.is_empty().not()));
 
-        let vehicle = db_controller.get_vehicle(&testing_plate).await.unwrap();
+        let vehicle = db_controller.get_vehicle(testing_plate).await.unwrap();
 
         assert!(&chat
             .subscribed_vehicles
