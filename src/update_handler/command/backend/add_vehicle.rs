@@ -1,4 +1,6 @@
-use crate::{update_handler::process_update::UpdateProcessor, BotError};
+use crate::{
+    db::model::client_state::ClientState, update_handler::process_update::UpdateProcessor, BotError,
+};
 
 impl UpdateProcessor {
     pub async fn add_vehicle(&self) -> Result<(), BotError> {
@@ -25,6 +27,10 @@ impl UpdateProcessor {
         };
 
         let keyboard = *self.inline_keyboard.clone().unwrap();
+
+        self.repo
+            .modify_state(&self.chat.id, ClientState::Initial)
+            .await?;
 
         self.api
             .edit_or_send_message(self.chat.id, self.message_id, &text, keyboard)

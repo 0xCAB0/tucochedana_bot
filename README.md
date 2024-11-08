@@ -7,7 +7,7 @@
 
 ```text
 start - Despliega el menú de opciones y el mensaje de bienvenida
-add_vehicle - Registra la matrícula del vehículo que buscas
+add_vehicle_message - Registra la matrícula del vehículo que buscas
 get_my_vehicles - Devuelve el listado de vehículos que has registrado
 help - Muestra un mensaje de ayuda sobre cómo usar el bot
 ```

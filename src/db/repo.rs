@@ -152,8 +152,11 @@ impl Repo {
         Ok(connection.query(&query, &[]).await?)
     }
 
-    pub async fn get_vehicles_by_chat_id(&self, chat_id: &i64) -> Result<Vec<Vehicle>, BotDbError> {
-        let chat = self.get_chat(chat_id).await?;
+    pub async fn _get_vehicles_by_chat_id(
+        &self,
+        chat_id: &i64,
+    ) -> Result<Vec<Vehicle>, BotDbError> {
+        let _chat = self.get_chat(chat_id).await?;
         todo!()
     }
 
@@ -353,8 +356,6 @@ impl Repo {
 #[cfg(test)]
 mod db_tests {
     use std::ops::Not;
-
-    use crate::db::model::vehicle;
 
     use super::*;
 

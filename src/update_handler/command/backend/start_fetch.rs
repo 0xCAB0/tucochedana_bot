@@ -6,8 +6,7 @@ use crate::{
 
 impl UpdateProcessor {
     pub async fn start_fetch(&self) -> Result<TaskToManage, BotError> {
-        let profile_id = 100i64;
-        let task = FetchTask::builder().chat_id(profile_id).build();
+        let task = FetchTask::builder().chat_id(self.chat.id).build();
         Ok(TaskToManage::FetchTask(task))
     }
 }
