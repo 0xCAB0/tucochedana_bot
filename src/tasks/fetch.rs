@@ -45,7 +45,7 @@ impl AsyncRunnable for FetchTask {
                         format!(
                             "El coche {} se encontró el {}",
                             self.plate,
-                            vehicle.datetime_to_text()
+                            vehicle.found_at_to_text()
                         ),
                     )
                     .await?;
@@ -55,17 +55,13 @@ impl AsyncRunnable for FetchTask {
         }
 
         let tu_coche_dana = TuCocheDanaClient::new().await;
-        match tu_coche_dana
-            .get_vehicle_by_plate(self.plate.to_string())
-            .await
-        {
-            Ok(()) => {
-                let found_at = chrono::Utc::now();
-                vehicle.found_at = Some(found_at);
+        match tu_coche_dana.is_vehicle_found(&self.plate).await {
+            Ok(found_at) => {
+                vehicle.found_at = Some(found_at); //Mejor mantener vehiculo mutable o crear un objeto nuevo?
                 repo.modify_found_at_vehicle(&self.plate, found_at).await?;
                 for sub in subscribers {
                     telegram
-                        .send_message_without_reply(sub.id, vehicle.datetime_to_text())
+                        .send_message_without_reply(sub.id, vehicle.found_at_to_text())
                         .await?;
                 }
                 repo.delete_tasks_by_plate(&self.plate).await?;
@@ -93,4 +89,22 @@ impl AsyncRunnable for FetchTask {
     fn backoff(&self, attempt: u32) -> u32 {
         u32::pow(2, attempt)
     }
+}
+
+#[cfg(test)]
+mod fetch_task_tests {
+    // use super::*;
+    // use crate::test::*;
+
+    // #[tokio::test]
+    // pub async fn test_fetch_task() {
+    //     clear_database().await.unwrap();
+    //     populate_database().await.unwrap();
+
+    //     let db_controller = Repo::new_no_tls().await.unwrap();
+    //     let connection = db_controller.get_connection().get().await.unwrap();
+
+    //     let testing_plate = "GHI789";
+    //     let testing_chat = 3;
+    // }
 }

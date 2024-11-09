@@ -29,13 +29,16 @@ impl UpdateProcessor {
 
         let mut tasks = vec![];
 
-        for sub_vehicles in subbs.split(',') {
-            let task = FetchTask::builder().plate(sub_vehicles.to_string()).build();
+        let mut subbs_vec: Vec<&str> = subbs.split(',').collect();
+        subbs_vec.pop(); //Removing whitespace
+
+        for vehicles in subbs_vec {
+            let task = FetchTask::builder().plate(vehicles.to_string()).build();
             tasks.push(task);
         }
 
         self.start_message(
-            Some("Alerta activada correctamente ✅, le avisaremos si se registra alguno de sus vehículos"),
+            Some("Alerta activada correctamente ✅\nle avisaremos si se registra alguno de sus vehículos"),
         )
         .await?;
 

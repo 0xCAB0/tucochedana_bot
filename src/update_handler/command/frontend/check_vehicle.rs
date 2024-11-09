@@ -12,7 +12,7 @@ impl UpdateProcessor {
 
         let rows = vec![vec![("⬅️ Back", "/get_my_vehicles")]];
         let vec = Self::texts_to_buttons(rows, false);
-        let text = format!("{VEHICLE_INFO}\n\n{}\n", vehicle.datetime_to_text());
+        let text = format!("{VEHICLE_INFO}\n\n{}\n", vehicle.found_at_to_text());
 
         self.api
             .edit_or_send_message(self.chat.id, self.message_id, &text, vec)

@@ -1,7 +1,9 @@
 use bb8_postgres::tokio_postgres::Row;
 use bon::Builder;
+use bytes::{BufMut, BytesMut};
 use chrono::{DateTime, Datelike, Timelike, Utc};
-use std::fmt::Debug;
+use postgres_types::{IsNull, ToSql, Type};
+use std::{error::Error, fmt::Debug};
 
 #[derive(Debug, Clone, Builder)]
 pub struct Vehicle {
@@ -9,6 +11,52 @@ pub struct Vehicle {
     pub subscribers_ids: Option<String>,
     //Active == subscribers.is_some_and_not_empty && found_at.is_none
     pub found_at: Option<DateTime<Utc>>,
+}
+
+impl ToSql for Vehicle {
+    fn to_sql(
+        &self,
+        _ty: &Type,
+        out: &mut BytesMut,
+    ) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
+        // Serialize each field as PostgreSQL expects
+        // Convert `plate` to SQL
+        out.put_slice(self.plate.as_bytes());
+
+        // Serialize `subscribers_ids` as a nullable value
+        match &self.subscribers_ids {
+            Some(subscribers) => {
+                out.put_slice(subscribers.as_bytes());
+            }
+            None => return Ok(IsNull::Yes), // Mark as null if empty
+        }
+
+        // Serialize `found_at` as a nullable timestamp if provided
+        if let Some(found) = &self.found_at {
+            let timestamp = found.timestamp().to_string();
+            out.put_slice(timestamp.as_bytes());
+        } else {
+            return Ok(IsNull::Yes);
+        }
+
+        Ok(IsNull::No)
+    }
+
+    fn accepts(ty: &Type) -> bool
+    where
+        Self: Sized,
+    {
+        matches!(ty.name(), "text" | "varchar" | "timestamp")
+    }
+
+    fn to_sql_checked(
+        &self,
+        ty: &Type,
+        out: &mut BytesMut,
+    ) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
+        // Perform additional checks or validations before serializing
+        self.to_sql(ty, out)
+    }
 }
 
 impl From<Row> for Vehicle {
@@ -30,7 +78,7 @@ impl PartialEq<Self> for Vehicle {
 }
 
 impl Vehicle {
-    pub fn datetime_to_text(&self) -> String {
+    pub fn found_at_to_text(&self) -> String {
         // Spanish names for days of the week
         let days = [
             "domingo",

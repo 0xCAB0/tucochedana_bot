@@ -20,6 +20,7 @@ static REPO: OnceCell<Repo> = OnceCell::const_new();
 
 const INSERT_CHAT: &str = include_str!("queries/insert_chat.sql");
 const INSERT_VEHICLE: &str = include_str!("queries/insert_vehicle.sql");
+const INSERT_VEHICLE_PLATE: &str = include_str!("queries/insert_vehicle_plate.sql");
 const DELETE_CHAT: &str = include_str!("queries/delete_chat.sql");
 const CHECK_CHAT_EXISTS: &str = include_str!("queries/check_chat_exists.sql");
 const GET_CHAT: &str = include_str!("queries/get_chat.sql");
@@ -123,7 +124,7 @@ impl Repo {
     pub async fn find_or_create_vehicle(&self, plate: &str) -> Result<Vehicle, BotDbError> {
         match self.get_vehicle(plate).await {
             Ok(row) => Ok(row),
-            Err(_) => self.insert_vehicle(plate).await,
+            Err(_) => self.insert_vehicle_by_plate(plate).await,
         }
     }
 
@@ -330,10 +331,23 @@ impl Repo {
         Ok(row.into())
     }
 
-    pub async fn insert_vehicle(&self, plate: &str) -> Result<Vehicle, BotDbError> {
+    pub async fn insert_vehicle(&self, vehicle: Vehicle) -> Result<Vehicle, BotDbError> {
         let connection = self.pool.get().await?;
 
-        let row = match connection.query_one(INSERT_VEHICLE, &[&plate]).await {
+        let row = match connection.query_one(INSERT_VEHICLE, &[&vehicle]).await {
+            Ok(r) => r.into(),
+            Err(err) => {
+                log::error!("insert_chat -> {}", err);
+                return Err(BotDbError::PgError(err));
+            }
+        };
+
+        Ok(row)
+    }
+    pub async fn insert_vehicle_by_plate(&self, plate: &str) -> Result<Vehicle, BotDbError> {
+        let connection = self.pool.get().await?;
+
+        let row = match connection.query_one(INSERT_VEHICLE_PLATE, &[&plate]).await {
             Ok(r) => r.into(),
             Err(err) => {
                 log::error!("insert_chat -> {}", err);
@@ -409,107 +423,10 @@ impl Repo {
 
 #[cfg(test)]
 mod db_tests {
+    use crate::test::*;
     use std::ops::Not;
 
-    use chrono::{Duration, Timelike};
-    use rand::Rng;
-
     use super::*;
-
-    async fn clear_database() -> Result<(u64, u64), BotDbError> {
-        dotenvy::dotenv().ok();
-        let db_controller = Repo::new_no_tls().await.unwrap();
-        let connection = db_controller.get_connection().get().await?;
-
-        let n1 = &connection.execute("DELETE FROM chats", &[]).await?;
-        let n2 = &connection.execute("DELETE FROM vehicles", &[]).await?;
-
-        log::error!("Cleared {} chats | {} vehicles", n1, n2);
-
-        Ok((*n1, *n2))
-    }
-
-    async fn populate_database() -> Result<(), BotDbError> {
-        dotenvy::dotenv().ok();
-        let db_controller = Repo::new_no_tls().await.unwrap();
-        let connection = db_controller.get_connection().get().await?;
-
-        // Insert 3 test users into the `chats` table using connection.execute
-        // Insert chats if not exists, conflict on `id`
-        connection
-            .execute(
-                "INSERT INTO chats (id, user_id, username, language_code, subscribed_vehicles)
-    VALUES ($1, $2, $3, $4, $5)
-    ON CONFLICT (id) DO NOTHING",
-                &[
-                    &1_i64,
-                    &123456_u64.to_le_bytes().to_vec(),
-                    &"user1",
-                    &Some("en".to_string()),
-                    &"ABC123,DEF456,",
-                ],
-            )
-            .await?;
-
-        connection
-            .execute(
-                "INSERT INTO chats (id, user_id, username, language_code, subscribed_vehicles)
-    VALUES ($1, $2, $3, $4, $5)
-    ON CONFLICT (id) DO NOTHING",
-                &[
-                    &2_i64,
-                    &234567_u64.to_le_bytes().to_vec(),
-                    &"user2",
-                    &Some("fr".to_string()),
-                    &"DEF456,",
-                ],
-            )
-            .await?;
-
-        connection
-            .execute(
-                "INSERT INTO chats (id, user_id, username, language_code)
-    VALUES ($1, $2, $3, $4)
-    ON CONFLICT (id) DO NOTHING",
-                &[
-                    &3_i64,
-                    &345678_u64.to_le_bytes().to_vec(),
-                    &"user3",
-                    &Some("es".to_string()),
-                ],
-            )
-            .await?;
-
-        // Insert vehicles if not exists, conflict on `plate`
-        connection
-            .execute(
-                "INSERT INTO vehicles (plate, subscribers_ids)
-    VALUES ($1, $2)
-    ON CONFLICT (plate) DO NOTHING",
-                &[&"ABC123", &"1,"],
-            )
-            .await?;
-
-        connection
-            .execute(
-                "INSERT INTO vehicles (plate, subscribers_ids)
-    VALUES ($1, $2)
-    ON CONFLICT (plate) DO NOTHING",
-                &[&"DEF456", &"1,2,"],
-            )
-            .await?;
-
-        connection
-            .execute(
-                "INSERT INTO vehicles (plate)
-    VALUES ($1)
-    ON CONFLICT (plate) DO NOTHING",
-                &[&"GHI789"],
-            )
-            .await?;
-
-        Ok(())
-    }
 
     #[tokio::test]
     async fn test_modify_state() {
@@ -638,25 +555,7 @@ mod db_tests {
         }
     }
 
-    fn random_datetime() -> DateTime<Utc> {
-        let now = Utc::now();
-        let mut rng = rand::thread_rng();
-
-        // Generate a random number of days to add/subtract (e.g., -365 to +365)
-        let days = rng.gen_range(-365..365);
-        // Generate random hours and minutes
-        let hours = rng.gen_range(0..24);
-        let minutes = rng.gen_range(0..60);
-
-        // Adjust the datetime by the random amounts
-        let random_time =
-            now + Duration::days(days) + Duration::hours(hours) + Duration::minutes(minutes);
-        random_time
-            .with_nanosecond((random_time.nanosecond() / 1_000) * 1_000)
-            .unwrap()
-    }
-
-    // Test for modifying the active state of a vehicle
+    /// Test for modifying the active state of a vehicle
     #[tokio::test]
     async fn test_modify_found_at_vehicle() {
         clear_database().await.unwrap();
@@ -685,7 +584,7 @@ mod db_tests {
         assert_eq!(n, 1);
     }
 
-    // Test for modifying the active state of a chat
+    /// Test for modifying the active state of a chat
     #[tokio::test]
     async fn test_modify_active_chat() {
         clear_database().await.unwrap();

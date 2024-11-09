@@ -1,0 +1,1 @@
+INSERT INTO vehicles (plate) VALUES ($1) RETURNING *;

@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use frankenstein::reqwest::{Client, StatusCode};
 
 use crate::{BotError, API_URL};
@@ -13,7 +14,7 @@ impl TuCocheDanaClient {
         TuCocheDanaClient { client }
     }
 
-    pub async fn get_vehicle_by_plate(&self, plate: String) -> Result<(), BotError> {
+    pub async fn is_vehicle_found(&self, plate: &str) -> Result<DateTime<Utc>, BotError> {
         let result = self
             .client
             .get(API_URL.to_string())
@@ -22,7 +23,7 @@ impl TuCocheDanaClient {
             .await?;
 
         match result.status() {
-            StatusCode::OK => Ok(()),
+            StatusCode::OK => Ok(Utc::now()),
             code => {
                 let test = result.text().await?;
                 Err(BotError::TuCocheDanaError(code, test))
