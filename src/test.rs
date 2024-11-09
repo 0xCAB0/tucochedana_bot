@@ -3,7 +3,13 @@ use rand::Rng;
 
 use crate::db::*;
 
-pub async fn clear_database() -> Result<(u64, u64), BotDbError> {
+pub async fn setup() -> Result<(), BotDbError> {
+    clear_database().await?;
+    populate_database().await?;
+    Ok(())
+}
+
+async fn clear_database() -> Result<(u64, u64), BotDbError> {
     dotenvy::dotenv().ok();
     let db_controller = Repo::new_no_tls().await.unwrap();
     let connection = db_controller.get_connection().get().await?;
@@ -11,12 +17,12 @@ pub async fn clear_database() -> Result<(u64, u64), BotDbError> {
     let n1 = &connection.execute("DELETE FROM chats", &[]).await?;
     let n2 = &connection.execute("DELETE FROM vehicles", &[]).await?;
 
-    log::error!("Cleared {} chats | {} vehicles", n1, n2);
+    log::info!("Cleared {} chats | {} vehicles", n1, n2);
 
     Ok((*n1, *n2))
 }
 
-pub async fn populate_database() -> Result<(), BotDbError> {
+async fn populate_database() -> Result<(), BotDbError> {
     dotenvy::dotenv().ok();
     let db_controller = Repo::new_no_tls().await.unwrap();
     let connection = db_controller.get_connection().get().await?;

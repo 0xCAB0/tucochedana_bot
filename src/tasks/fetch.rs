@@ -54,7 +54,7 @@ impl AsyncRunnable for FetchTask {
             return Ok(());
         }
 
-        let tu_coche_dana = TuCocheDanaClient::new().await;
+        let tu_coche_dana = TuCocheDanaClient::new(None).await;
         match tu_coche_dana.is_vehicle_found(&self.plate).await {
             Ok(found_at) => {
                 vehicle.found_at = Some(found_at); //Mejor mantener vehiculo mutable o crear un objeto nuevo?

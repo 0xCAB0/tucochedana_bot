@@ -43,3 +43,7 @@ chrono = { version = "0.4", features = ["serde"] }
 openssl = { version = "0.10" }
 axum = "0.7.7"
 rand = "0.8"
+
+[dev-dependencies]
+# Testing
+mockito = "1.5.0"

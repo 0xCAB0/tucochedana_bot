@@ -430,7 +430,7 @@ mod db_tests {
 
     #[tokio::test]
     async fn test_modify_state() {
-        clear_database().await.unwrap();
+        setup().await.unwrap();
         //Pick a random user of the DB
         let db_controller = Repo::new_no_tls().await.unwrap();
         let connection = db_controller.get_connection().get().await.unwrap();
@@ -479,8 +479,7 @@ mod db_tests {
 
     #[tokio::test]
     async fn test_subscribe_to_vehicle() {
-        clear_database().await.unwrap();
-        populate_database().await.unwrap();
+        setup().await.unwrap();
 
         let db_controller = Repo::new_no_tls().await.unwrap();
         let _connection = db_controller.get_connection().get().await.unwrap();
@@ -523,8 +522,7 @@ mod db_tests {
 
     #[tokio::test]
     async fn list_my_vehicles() {
-        clear_database().await.unwrap();
-        populate_database().await.unwrap();
+        setup().await.unwrap();
 
         let db_controller = Repo::new_no_tls().await.unwrap();
         let _connection = db_controller.get_connection().get().await.unwrap();
@@ -558,8 +556,7 @@ mod db_tests {
     /// Test for modifying the active state of a vehicle
     #[tokio::test]
     async fn test_modify_found_at_vehicle() {
-        clear_database().await.unwrap();
-        populate_database().await.unwrap();
+        setup().await.unwrap();
 
         let db_controller = Repo::new_no_tls().await.unwrap();
         let connection = db_controller.get_connection().get().await.unwrap();
@@ -587,8 +584,7 @@ mod db_tests {
     /// Test for modifying the active state of a chat
     #[tokio::test]
     async fn test_modify_active_chat() {
-        clear_database().await.unwrap();
-        populate_database().await.unwrap();
+        setup().await.unwrap();
 
         let db_controller = Repo::new_no_tls().await.unwrap();
         let connection = db_controller.get_connection().get().await.unwrap();
@@ -628,10 +624,7 @@ mod db_tests {
 
     #[tokio::test]
     async fn test_get_active_subscriptions_from_vehicle() {
-        let (n_chats, n_vehicles) = clear_database().await.unwrap();
-        // Clear and populate the database with test data
-        log::error!("Cleared {} chats | {} vehicles", n_chats, n_vehicles);
-        populate_database().await.unwrap();
+        setup().await.unwrap();
 
         let db_controller = Repo::new_no_tls().await.unwrap();
         let connection = db_controller.get_connection().get().await.unwrap();

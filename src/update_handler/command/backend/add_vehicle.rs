@@ -9,7 +9,7 @@ use crate::{
 impl UpdateProcessor {
     pub async fn add_vehicle(&self) -> Result<TaskToManage, BotError> {
         let plate = String::from(&self.text);
-        let client = TuCocheDanaClient::new().await;
+        let client = TuCocheDanaClient::new(None).await;
 
         let found_at = client.is_vehicle_found(&plate).await.ok();
 
@@ -49,11 +49,11 @@ impl UpdateProcessor {
             .repo
             .subscribe_chat_id_to_vehicle(&plate, self.chat.id)
             .await
-            .is_ok()
+            .is_err()
         {
-            format!("El vehículo {plate} ya ha sido registrado por otro usuario, le añadiremos como interesado")
-        } else {
             format!("El vehículo {plate} ya ha sido añadido previamente 👀")
+        } else {
+            format!("El vehículo {plate} ya ha sido registrado por otro usuario, le añadiremos como interesado")
         };
 
         // Restaurar el estado

@@ -18,11 +18,7 @@ impl UpdateProcessor {
         self.chat.active = true;
 
         let Some(subbs) = &self.chat.subscribed_vehicles else {
-            self.api
-                .send_message_without_reply(
-                    self.chat.id,
-                    "Debe añadir vehículos para activar las alertas",
-                )
+            self.start_message(Some("Debe añadir vehículos para activar las alertas"))
                 .await?;
             return Ok(TaskToManage::NoTask);
         };
