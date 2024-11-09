@@ -186,11 +186,7 @@ impl Repo {
         Ok(row.into())
     }
 
-    pub async fn subscribe_chat_id_to_vehicle(
-        &self,
-        plate: &str,
-        chat_id: i64,
-    ) -> Result<(), BotDbError> {
+    pub async fn create_subscription(&self, plate: &str, chat_id: i64) -> Result<(), BotDbError> {
         let current_subscriptions = self.get_subscriptions_from_vehicle_as_string(plate).await?;
 
         if current_subscriptions.is_some_and(|list| {
@@ -489,7 +485,7 @@ mod db_tests {
 
         // Añadir a uno vacío
         db_controller
-            .subscribe_chat_id_to_vehicle(testing_plate, testing_chat)
+            .create_subscription(testing_plate, testing_chat)
             .await
             .unwrap();
 

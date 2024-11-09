@@ -15,7 +15,7 @@ impl UpdateProcessor {
 
         let vehicle = Vehicle::builder()
             .plate(plate.clone())
-            .subscribers_ids(format!("{},", self.chat.id))
+            .maybe_subscribers_ids(None)
             .maybe_found_at(found_at)
             .build();
 
@@ -29,9 +29,7 @@ impl UpdateProcessor {
         let text = if self.repo.insert_vehicle(vehicle).await.is_ok() {
             //Si el vehículo es añadido por un usuario activo -> Lanzar task
             if self.chat.active {
-                self.repo
-                    .subscribe_chat_id_to_vehicle(&plate, self.chat.id)
-                    .await?;
+                self.repo.create_subscription(&plate, self.chat.id).await?;
 
                 self.repo
                     .modify_state(&self.chat.id, ClientState::Initial)
@@ -47,7 +45,7 @@ impl UpdateProcessor {
             }
         } else if self
             .repo
-            .subscribe_chat_id_to_vehicle(&plate, self.chat.id)
+            .create_subscription(&plate, self.chat.id)
             .await
             .is_err()
         {
