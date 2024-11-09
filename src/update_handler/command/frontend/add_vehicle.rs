@@ -3,7 +3,7 @@ use crate::{
 };
 
 pub const ADD_BRAND_MESSAGE_TEXT: &str =
-    "Escribe la matrícula del vehículo del que deseas recibir alertas";
+    "Escribe la matrícula del vehículo del que deseas recibir alertas o /cancel para cancelar";
 
 impl UpdateProcessor {
     pub async fn add_vehicle_prompt(&self) -> Result<(), BotError> {

@@ -31,6 +31,7 @@ impl FromStr for Command {
         let result = match command_str.trim() {
             "/start" => Command::Start,
             "/help" => Command::Help,
+            "/cancel" => Command::Cancel,
             "/start_back" => Command::StartBack,
             "/add_vehicle" => Command::AddVehicle,
             "/check_vehicle" => Command::VehicleInfo,
