@@ -57,18 +57,24 @@ pub mod backend;
 };
 
 */
+
+/// Comandos que:
+/// 1. Crean tareas
+/// 2. Modifican la base de datos
 pub mod backend {
     pub mod add_vehicle;
     pub mod cancel;
+    pub mod remove_vehicle;
     pub mod start_fetch;
     pub mod stop_fetch;
 }
+
+/// Comandos que solo mandan mensajes o consultan la BD
 pub mod frontend {
     pub mod add_vehicle;
     pub mod check_vehicle;
     pub mod help;
     pub mod list_vehicles;
-    pub mod remove_vehicle;
     pub mod start;
 }
 
