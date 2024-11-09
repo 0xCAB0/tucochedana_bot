@@ -15,7 +15,7 @@ impl UpdateProcessor {
 
         let vehicle = Vehicle::builder()
             .plate(plate.clone())
-            .maybe_subscribers_ids(None)
+            .subscribers_ids(format!("{},", self.chat.id))
             .maybe_found_at(found_at)
             .build();
 
