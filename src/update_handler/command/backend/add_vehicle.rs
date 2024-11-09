@@ -49,7 +49,7 @@ impl UpdateProcessor {
             .modify_state(&self.chat.id, ClientState::Initial)
             .await?;
 
-        self.start_message(&text).await?;
+        self.start_message(Some(&text)).await?;
 
         Ok(TaskToManage::NoTask)
     }

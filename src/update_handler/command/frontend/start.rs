@@ -8,10 +8,10 @@ pub const START_OPTIONS_4: &str = "Ayuda";
 
 pub const WELCOME_MESSAGE: &str = "¡Bienvenido! Este bot se encuentra en desarrollo.\nEste proyecto no está afiliado con **tucochedana.es**";
 
-use crate::update_handler::process_update::UpdateProcessor;
+use crate::update_handler::process_update::{UpdateProcessor, SELECT_COMMAND_TEXT};
 
 impl UpdateProcessor {
-    pub async fn start_message(&self, text: &str) -> Result<(), BotError> {
+    pub async fn start_message(&self, text: Option<&str>) -> Result<(), BotError> {
         //Handling new user
 
         if self.is_first {
@@ -36,6 +36,11 @@ impl UpdateProcessor {
         ];
 
         let vec = Self::texts_to_buttons(rows, false);
+
+        let text = match text {
+            Some(t) => t,
+            None => SELECT_COMMAND_TEXT,
+        };
 
         self.api
             .edit_or_send_message(self.chat.id, self.message_id, text, vec)

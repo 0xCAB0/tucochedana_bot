@@ -9,7 +9,8 @@ impl UpdateProcessor {
             Some(message) => message,
             None => "Your operation was canceled".to_string(),
         };
-        self.send_message(&text).await
+        self.send_message(&text).await?;
+        self.start_message(None).await
     }
 
     pub async fn revert_state(&self) -> Result<(), BotError> {

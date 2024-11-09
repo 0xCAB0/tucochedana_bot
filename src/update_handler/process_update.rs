@@ -198,12 +198,12 @@ impl UpdateProcessor {
             }
 
             Command::Start => {
-                self.start_message(SELECT_COMMAND_TEXT).await?;
+                self.start_message(None).await?;
                 Ok(TaskToManage::NoTask)
             }
 
             Command::StartBack => {
-                self.start_message(SELECT_COMMAND_TEXT).await?;
+                self.start_message(None).await?;
                 Ok(TaskToManage::NoTask)
             }
 
