@@ -110,7 +110,7 @@ jobs:
   build-container:
     name: Build and Push image to DockerHub.
     runs-on: ubuntu-latest
-    needs: test
+    # needs: test # Deactivating to speed up develoment (RESTORE IN PRODUCTION)
     if: github.ref == 'refs/heads/main'
 
     steps:

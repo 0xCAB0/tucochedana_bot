@@ -1,6 +1,6 @@
 use crate::{
     tasks::fetch::FetchTask,
-    update_handler::process_update::{TaskToManage, UpdateProcessor, SELECT_COMMAND_TEXT},
+    update_handler::process_update::{TaskToManage, UpdateProcessor},
     BotError,
 };
 
@@ -32,9 +32,10 @@ impl UpdateProcessor {
             tasks.push(task);
         }
 
-        self.api.send_message_without_reply(self.chat.id, "Alerta activada correctamente, le avisaremos si se registra alguno de sus vehículos").await?;
-
-        self.start_message(SELECT_COMMAND_TEXT).await?;
+        self.start_message(
+            "Alerta activada correctamente, le avisaremos si se registra alguno de sus vehículos",
+        )
+        .await?;
 
         Ok(TaskToManage::FetchTasks(tasks))
     }

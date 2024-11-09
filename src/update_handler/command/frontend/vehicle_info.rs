@@ -13,7 +13,7 @@ impl UpdateProcessor {
         let plate: &str = iter.next().unwrap();
         let vehicle: Vehicle = self.repo.get_vehicle(plate).await?;
 
-        let rows = vec![vec![("⬅️ Back".to_string(), "/start_back".to_string())]];
+        let rows = vec![vec![("⬅️ Back", "/get_my_vehicles")]];
 
         let vec = Self::texts_to_buttons(rows, false);
 

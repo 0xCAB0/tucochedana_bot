@@ -2,11 +2,11 @@ use crate::BotError;
 
 pub const START_OPTIONS_1: &str = "Añadir un vehículo";
 pub const START_OPTIONS_1_2: &str = "Mis vehículos";
-pub const START_OPTIONS_2: &str = "Activar alerta";
-pub const START_OPTIONS_3: &str = "Desactivar alerta";
+pub const START_OPTIONS_2: &str = "🚨 Activar alertas";
+pub const START_OPTIONS_3: &str = "🔕 Desactivar alertas";
 pub const START_OPTIONS_4: &str = "Ayuda";
 
-pub const WELCOME_MESSAGE: &str = "¡Bienvenido!";
+pub const WELCOME_MESSAGE: &str = "¡Bienvenido! Este bot se encuentra en desarrollo.\nEste proyecto no está afiliado con **tucochedana.es**";
 
 use crate::update_handler::process_update::UpdateProcessor;
 

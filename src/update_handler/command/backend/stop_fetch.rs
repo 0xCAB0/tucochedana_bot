@@ -14,11 +14,18 @@ impl UpdateProcessor {
 
         self.repo.modify_active_chat(&self.chat.id, false).await?;
 
-        if let Some(active_subs) = &self.chat.subscribed_vehicles {
+        let result = if let Some(active_subs) = &self.chat.subscribed_vehicles {
             //If he's the only subscriber, stop fetch
             Ok(TaskToManage::RemoveTasks(active_subs.to_owned()))
         } else {
             Ok(TaskToManage::NoTask)
-        }
+        };
+
+        self.start_message(
+            "Alerta activada correctamente, le avisaremos si se registra alguno de sus vehículos",
+        )
+        .await?;
+
+        result
     }
 }
