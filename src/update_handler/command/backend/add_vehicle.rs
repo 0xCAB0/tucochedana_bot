@@ -34,8 +34,7 @@ impl UpdateProcessor {
                 self.repo
                     .modify_state(&self.chat.id, ClientState::Initial)
                     .await?;
-                self.api
-                    .send_message_without_reply(self.chat.id, format!("Vehículo {plate} añadido✅\ncomo tiene las alertas activas, le avisaremos si se registra"))
+                self.start_message(Some(&format!("Vehículo {plate} añadido✅\ncomo tiene las alertas activas, le avisaremos si se registra")))
                     .await?;
                 return Ok(TaskToManage::FetchTask(
                     FetchTask::builder().plate(plate).build(),
