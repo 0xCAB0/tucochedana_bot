@@ -14,25 +14,9 @@ impl UpdateProcessor {
 
         let rows = Self::texts_to_buttons(rows, false);
 
-        let chunks: Vec<&str> = HELP_TEXT
-            .as_bytes()
-            .chunks(1000)
-            .map(|chunk| std::str::from_utf8(chunk).unwrap())
-            .collect();
-
-        for (i, chunk) in chunks.iter().enumerate() {
-            if i == chunks.len() - 1 {
-                self.api
-                    .send_message_with_buttons(self.chat.id, chunk, rows.clone())
-                    .await?;
-            } else {
-                // Otherwise, send a regular message
-                self.api
-                    .send_message_without_reply(self.chat.id, *chunk)
-                    .await?;
-            }
-        }
-
+        self.api
+            .edit_or_send_message(self.chat.id, self.message_id, HELP_TEXT, rows)
+            .await?;
         Ok(())
     }
 }

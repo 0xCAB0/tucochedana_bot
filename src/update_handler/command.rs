@@ -1,7 +1,7 @@
 use frankenstein::{InlineKeyboardButton, InlineKeyboardMarkup};
 
 use crate::{db::model::client_state::ClientState, BotError, BOT_NAME};
-use std::str::FromStr;
+use std::str::{FromStr, SplitAsciiWhitespace};
 
 use super::process_update::UpdateProcessor;
 
@@ -64,11 +64,11 @@ pub mod backend {
 }
 pub mod frontend {
     pub mod add_vehicle;
+    pub mod check_vehicle;
     pub mod help;
     pub mod list_vehicles;
     pub mod remove_vehicle;
     pub mod start;
-    pub mod vehicle_info;
 }
 
 impl UpdateProcessor {
@@ -136,6 +136,42 @@ impl UpdateProcessor {
 
     async fn _send_typing(&self) -> Result<(), BotError> {
         self.api.send_typing(self.chat.id).await?;
+        Ok(())
+    }
+
+    pub fn get_parse_iterator(&self) -> SplitAsciiWhitespace<'_> {
+        let mut iter = self
+            .callback_data
+            .as_ref()
+            .unwrap()
+            .split_ascii_whitespace();
+        iter.next();
+        iter
+    }
+
+    pub async fn send_long_text(
+        &self,
+        text: String,
+        rows: InlineKeyboardMarkup,
+    ) -> Result<(), BotError> {
+        let chunks: Vec<&str> = text
+            .as_bytes()
+            .chunks(1000)
+            .map(|chunk| std::str::from_utf8(chunk).unwrap())
+            .collect();
+
+        for (i, chunk) in chunks.iter().enumerate() {
+            if i == chunks.len() - 1 {
+                self.api
+                    .send_message_with_buttons(self.chat.id, chunk, rows.clone())
+                    .await?;
+            } else {
+                // Otherwise, send a regular message
+                self.api
+                    .send_message_without_reply(self.chat.id, *chunk)
+                    .await?;
+            }
+        }
         Ok(())
     }
 }

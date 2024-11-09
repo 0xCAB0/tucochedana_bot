@@ -5,7 +5,7 @@ use crate::{
 };
 
 impl UpdateProcessor {
-    pub async fn start_fetch(&self) -> Result<TaskToManage, BotError> {
+    pub async fn start_fetch(&mut self) -> Result<TaskToManage, BotError> {
         if self.chat.active {
             self.api
                 .send_message_without_reply(self.chat.id, "Las alertas ya han sido activadas")
@@ -14,6 +14,8 @@ impl UpdateProcessor {
         }
 
         self.repo.modify_active_chat(&self.chat.id, true).await?;
+
+        self.chat.active = true;
 
         let Some(subbs) = &self.chat.subscribed_vehicles else {
             self.api

@@ -49,9 +49,7 @@ impl UpdateProcessor {
             .modify_state(&self.chat.id, ClientState::Initial)
             .await?;
 
-        self.api
-            .send_message_without_reply(self.chat.id, text)
-            .await?;
+        self.start_message(&text).await?;
 
         Ok(TaskToManage::NoTask)
     }

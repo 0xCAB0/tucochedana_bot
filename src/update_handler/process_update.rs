@@ -1,4 +1,4 @@
-use std::str::{FromStr, SplitAsciiWhitespace};
+use std::str::FromStr;
 use std::sync::Arc;
 
 use crate::db::model::client_state::ClientState;
@@ -41,16 +41,6 @@ pub struct UpdateProcessor {
 }
 
 impl UpdateProcessor {
-    pub fn get_parse_iterator(&self) -> SplitAsciiWhitespace<'_> {
-        let mut iter = self
-            .callback_data
-            .as_ref()
-            .unwrap()
-            .split_ascii_whitespace();
-        iter.next();
-        iter
-    }
-
     async fn create(update: &Update) -> Result<Self, BotError> {
         let repo = Repo::repo().await?;
         let api = ApiClient::api_client().await;
@@ -139,7 +129,7 @@ impl UpdateProcessor {
         update: &Update,
         queue: Arc<Mutex<AsyncQueue<NoTls>>>,
     ) -> Result<(), BotError> {
-        let processor = match UpdateProcessor::create(update).await {
+        let mut processor = match UpdateProcessor::create(update).await {
             Ok(processor) => processor,
             Err(err) => {
                 log::error!("Failed to initialize the processor {:?}", err);
@@ -181,7 +171,7 @@ impl UpdateProcessor {
         Ok(())
     }
 
-    async fn process(&self) -> Result<TaskToManage, BotError> {
+    async fn process(&mut self) -> Result<TaskToManage, BotError> {
         if Command::Cancel == self.command {
             self.cancel(None).await?;
             return Ok(TaskToManage::NoTask);
@@ -200,7 +190,7 @@ impl UpdateProcessor {
         }
     }
 
-    async fn process_initial(&self) -> Result<TaskToManage, BotError> {
+    async fn process_initial(&mut self) -> Result<TaskToManage, BotError> {
         match &self.command {
             Command::Help => {
                 self.help_menu().await?;
@@ -223,7 +213,7 @@ impl UpdateProcessor {
             }
 
             Command::MyAddedVehicles => {
-                self.get_vehicles().await?;
+                self.get_vehicles(None).await?;
                 Ok(TaskToManage::NoTask)
             }
 
