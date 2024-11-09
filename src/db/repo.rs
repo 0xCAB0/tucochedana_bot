@@ -117,7 +117,7 @@ impl Repo {
                 .insert_chat(chat_id, user_id, username, language_code)
                 .await?;
 
-            Ok((chat, false))
+            Ok((chat, true))
         }
     }
 
