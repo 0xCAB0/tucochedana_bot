@@ -71,7 +71,7 @@ impl Vehicle {
 
         // Format the date as a Spanish-readable string
         format!(
-            "El vehículo {} fue encontrado el {}, {} de {} de {}, {:02}:{:02}",
+            "El vehículo {} fue encontrado el {}, {} de {} de {}, {:02}:{:02} 🙌🏼",
             self.plate, weekday, day, month, year, hour, minute
         )
     }

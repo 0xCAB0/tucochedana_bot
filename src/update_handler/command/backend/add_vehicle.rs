@@ -28,7 +28,7 @@ impl UpdateProcessor {
                     FetchTask::builder().plate(plate.to_string()).build(),
                 ));
             } else {
-                format!("Vehículo {plate} añadido")
+                format!("Vehículo {plate} añadido ✅")
             }
         } else {
             //TODO: ¿Deberíamos realizar alguna acción extra si ya está registrado?
@@ -42,7 +42,7 @@ impl UpdateProcessor {
             .is_ok()
             .not()
         {
-            text = format!("El vehículo {plate} ya ha sido añadido previamente")
+            text = format!("El vehículo {plate} ya ha sido añadido previamente 👀")
         };
 
         self.repo

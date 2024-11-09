@@ -22,7 +22,7 @@ impl UpdateProcessor {
             Ok(TaskToManage::NoTask)
         };
 
-        self.start_message("Alertas desactivadas correctamente")
+        self.start_message("Alertas desactivadas correctamente ✅")
             .await?;
 
         result

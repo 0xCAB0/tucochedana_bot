@@ -35,7 +35,7 @@ impl UpdateProcessor {
         }
 
         self.start_message(
-            "Alerta activada correctamente, le avisaremos si se registra alguno de sus vehículos",
+            "Alerta activada correctamente ✅, le avisaremos si se registra alguno de sus vehículos",
         )
         .await?;
 
