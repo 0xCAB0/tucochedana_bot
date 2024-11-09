@@ -1,6 +1,6 @@
 use bb8_postgres::tokio_postgres::Row;
 use bon::Builder;
-use bytes::{BufMut, BytesMut};
+use bytes::BytesMut;
 use chrono::{DateTime, Datelike, Timelike, Utc};
 use postgres_types::{IsNull, ToSql, Type};
 use std::{error::Error, fmt::Debug};
@@ -19,26 +19,32 @@ impl ToSql for Vehicle {
         _ty: &Type,
         out: &mut BytesMut,
     ) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
-        // Serialize each field as PostgreSQL expects
-        // Convert `plate` to SQL
-        out.put_slice(self.plate.as_bytes());
+        // Serialize each field individually, as PostgreSQL expects
+        let mut serialized_data = Vec::new();
 
-        // Serialize `subscribers_ids` as a nullable value
+        // Serialize `plate`
+        serialized_data.extend_from_slice(self.plate.as_bytes());
+        serialized_data.push(b'\0'); // Field delimiter
+
+        // Serialize `subscribers_ids` if it exists
         match &self.subscribers_ids {
             Some(subscribers) => {
-                out.put_slice(subscribers.as_bytes());
+                serialized_data.extend_from_slice(subscribers.as_bytes());
+                serialized_data.push(b'\0');
             }
-            None => return Ok(IsNull::Yes), // Mark as null if empty
+            None => serialized_data.push(b'\0'),
         }
 
-        // Serialize `found_at` as a nullable timestamp if provided
+        // Serialize `found_at` if it exists
         if let Some(found) = &self.found_at {
             let timestamp = found.timestamp().to_string();
-            out.put_slice(timestamp.as_bytes());
+            serialized_data.extend_from_slice(timestamp.as_bytes());
+            serialized_data.push(b'\0');
         } else {
-            return Ok(IsNull::Yes);
+            serialized_data.push(b'\0');
         }
 
+        out.extend_from_slice(&serialized_data);
         Ok(IsNull::No)
     }
 
@@ -46,6 +52,7 @@ impl ToSql for Vehicle {
     where
         Self: Sized,
     {
+        // Customize this based on PostgreSQL types for each field if needed
         matches!(ty.name(), "text" | "varchar" | "timestamp")
     }
 
@@ -54,7 +61,6 @@ impl ToSql for Vehicle {
         ty: &Type,
         out: &mut BytesMut,
     ) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
-        // Perform additional checks or validations before serializing
         self.to_sql(ty, out)
     }
 }

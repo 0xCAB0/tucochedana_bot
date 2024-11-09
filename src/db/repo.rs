@@ -72,16 +72,6 @@ impl Repo {
         Ok(Repo { pool: pl })
     }
 
-    /* //
-    Eventualmente se podrían usar para obtener el user_id que es un u64
-    postgres_types no tiene compatibilidad con el tipo u64 , pero lo que hacemos en guardar el u64 como bytes en la BBDD de postgreSQL
-
-    fn bytes_to_u64(bytes: &[u8]) -> u64 {
-        let mut arr = [0u8; 8];
-        arr.copy_from_slice(bytes);
-        Self::as_u64_le(&arr)
-    }*/
-
     pub fn as_u64_le(array: &[u8; 8]) -> u64 {
         (array[0] as u64)
             + ((array[1] as u64) << 8)
@@ -330,10 +320,16 @@ impl Repo {
     pub async fn insert_vehicle(&self, vehicle: Vehicle) -> Result<Vehicle, BotDbError> {
         let connection = self.pool.get().await?;
 
-        let row = match connection.query_one(INSERT_VEHICLE, &[&vehicle]).await {
+        let row = match connection
+            .query_one(
+                INSERT_VEHICLE,
+                &[&vehicle.plate, &vehicle.subscribers_ids, &vehicle.found_at],
+            )
+            .await
+        {
             Ok(r) => r.into(),
             Err(err) => {
-                log::error!("insert_chat -> {}", err);
+                log::error!("insert_vehicle -> {}", err);
                 return Err(BotDbError::PgError(err));
             }
         };
@@ -346,7 +342,7 @@ impl Repo {
         let row = match connection.query_one(INSERT_VEHICLE_PLATE, &[&plate]).await {
             Ok(r) => r.into(),
             Err(err) => {
-                log::error!("insert_chat -> {}", err);
+                log::error!("insert_vehicle_by_plate -> {}", err);
                 return Err(BotDbError::PgError(err));
             }
         };
@@ -667,5 +663,42 @@ mod db_tests {
 
         // Assert the result matches the expected active chat IDs
         assert_eq!(active_chat_ids, vec![1, 3]);
+    }
+
+    #[tokio::test]
+    async fn test_insert_vehicle() {
+        setup().await.unwrap();
+
+        let db_controller = Repo::new_no_tls().await.unwrap();
+
+        let test_vehicle = Vehicle {
+            plate: "TEST123".to_string(),
+            subscribers_ids: Some("123,".to_string()),
+            found_at: None,
+        };
+
+        match db_controller.insert_vehicle(test_vehicle.clone()).await {
+            Ok(vehicle) => {
+                assert_eq!(vehicle.plate, test_vehicle.plate);
+                assert_eq!(vehicle.subscribers_ids, test_vehicle.subscribers_ids);
+                assert!(vehicle.found_at.is_none());
+            }
+            Err(e) => panic!("Failed to insert vehicle: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_insert_vehicle_by_plate() {
+        setup().await.unwrap();
+
+        let db_controller = Repo::new_no_tls().await.unwrap();
+        let plate = "PLATE123";
+
+        match db_controller.insert_vehicle_by_plate(plate).await {
+            Ok(vehicle) => {
+                assert_eq!(vehicle.plate, plate);
+            }
+            Err(e) => panic!("Failed to insert vehicle by plate: {:?}", e),
+        }
     }
 }
