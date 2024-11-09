@@ -22,10 +22,8 @@ impl UpdateProcessor {
             Ok(TaskToManage::NoTask)
         };
 
-        self.start_message(
-            "Alerta activada correctamente, le avisaremos si se registra alguno de sus vehículos",
-        )
-        .await?;
+        self.start_message("Alertas desactivadas correctamente")
+            .await?;
 
         result
     }
