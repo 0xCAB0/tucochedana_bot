@@ -65,3 +65,16 @@ impl UpdateProcessor {
         Ok(TaskToManage::NoTask)
     }
 }
+
+// #[cfg(test)]
+// mod add_vehicle_tests {
+//     use crate::{
+//         db::{model::chat::Chat, repo, Repo},
+//         test,
+//     };
+
+//     use super::*;
+
+//     #[tokio::test]
+//     async fn test_add_vehicle() {}
+// }

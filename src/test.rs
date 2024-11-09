@@ -3,10 +3,9 @@ use rand::Rng;
 
 use crate::db::*;
 
-pub async fn setup() -> Result<(), BotDbError> {
-    clear_database().await?;
-    populate_database().await?;
-    Ok(())
+pub async fn setup() {
+    clear_database().await.unwrap();
+    populate_database().await.unwrap();
 }
 
 async fn clear_database() -> Result<(u64, u64), BotDbError> {

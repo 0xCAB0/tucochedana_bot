@@ -418,7 +418,7 @@ mod db_tests {
 
     #[tokio::test]
     async fn test_modify_state() {
-        setup().await.unwrap();
+        setup().await;
         //Pick a random user of the DB
         let db_controller = Repo::new_no_tls().await.unwrap();
         let connection = db_controller.get_connection().get().await.unwrap();
@@ -467,7 +467,7 @@ mod db_tests {
 
     #[tokio::test]
     async fn test_subscribe_to_vehicle() {
-        setup().await.unwrap();
+        setup().await;
 
         let db_controller = Repo::new_no_tls().await.unwrap();
         let _connection = db_controller.get_connection().get().await.unwrap();
@@ -510,7 +510,7 @@ mod db_tests {
 
     #[tokio::test]
     async fn list_my_vehicles() {
-        setup().await.unwrap();
+        setup().await;
 
         let db_controller = Repo::new_no_tls().await.unwrap();
         let _connection = db_controller.get_connection().get().await.unwrap();
@@ -544,7 +544,7 @@ mod db_tests {
     /// Test for modifying the active state of a vehicle
     #[tokio::test]
     async fn test_modify_found_at_vehicle() {
-        setup().await.unwrap();
+        setup().await;
 
         let db_controller = Repo::new_no_tls().await.unwrap();
         let connection = db_controller.get_connection().get().await.unwrap();
@@ -572,7 +572,7 @@ mod db_tests {
     /// Test for modifying the active state of a chat
     #[tokio::test]
     async fn test_modify_active_chat() {
-        setup().await.unwrap();
+        setup().await;
 
         let db_controller = Repo::new_no_tls().await.unwrap();
         let connection = db_controller.get_connection().get().await.unwrap();
@@ -612,7 +612,7 @@ mod db_tests {
 
     #[tokio::test]
     async fn test_get_active_subscriptions_from_vehicle() {
-        setup().await.unwrap();
+        setup().await;
 
         let db_controller = Repo::new_no_tls().await.unwrap();
         let connection = db_controller.get_connection().get().await.unwrap();
@@ -663,7 +663,7 @@ mod db_tests {
 
     #[tokio::test]
     async fn test_insert_vehicle() {
-        setup().await.unwrap();
+        setup().await;
 
         let db_controller = Repo::new_no_tls().await.unwrap();
 
@@ -685,7 +685,7 @@ mod db_tests {
 
     #[tokio::test]
     async fn test_insert_vehicle_by_plate() {
-        setup().await.unwrap();
+        setup().await;
 
         let db_controller = Repo::new_no_tls().await.unwrap();
         let plate = "PLATE123";
