@@ -245,7 +245,7 @@ impl UpdateProcessor {
         subscriptions.pop();
 
         for plate in subscriptions.split(',') {
-            if repo.subscribers_by_plate(plate).await? == 1 {
+            if repo.get_n_subscribers_by_plate(plate).await? == 1 {
                 repo.delete_tasks_by_plate(plate).await?;
             }
         }

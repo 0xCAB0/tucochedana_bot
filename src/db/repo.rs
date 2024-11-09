@@ -44,6 +44,7 @@ pub struct Repo {
     pool: Pool<PostgresConnectionManager<NoTls>>,
 }
 
+/// Setup methods
 impl Repo {
     pub fn get_connection(&self) -> &Pool<PostgresConnectionManager<NoTls>> {
         &self.pool
@@ -82,6 +83,99 @@ impl Repo {
             + ((array[6] as u64) << 48)
             + ((array[7] as u64) << 56)
     }
+}
+
+/// Queries
+impl Repo {
+    // General methods
+    pub fn calculate_next_delivery(cron_expression: &str) -> Result<DateTime<Utc>, BotDbError> {
+        let schedule = Schedule::from_str(cron_expression)?;
+        let mut iterator = schedule.upcoming(Utc);
+
+        iterator.next().ok_or(BotDbError::NoTimestampsError)
+    }
+
+    pub async fn get_chat(&self, chat_id: &i64) -> Result<Chat, BotDbError> {
+        let connection = self.pool.get().await?;
+
+        let row = match connection.query_one(GET_CHAT, &[chat_id]).await {
+            Ok(r) => r,
+            Err(err) => {
+                log::error!("get_chat -> {}", err);
+                return Err(BotDbError::PgError(err));
+            }
+        };
+
+        Ok(row.into())
+    }
+
+    pub async fn get_rows(&self, query: String) -> Result<Vec<Row>, BotDbError> {
+        let connection = self.pool.get().await?;
+
+        Ok(connection.query(&query, &[]).await?)
+    }
+
+    // Getters
+    pub async fn get_vehicles_by_chat_id(&self, chat_id: &i64) -> Result<Vec<Vehicle>, BotDbError> {
+        let chat = self.get_chat(chat_id).await?;
+
+        match chat.subscribed_vehicles {
+            Some(subs) => self.get_vehicles_from_subs_string(&subs).await,
+
+            None => Ok(vec![]),
+        }
+    }
+
+    async fn get_vehicles_from_subs_string(
+        &self,
+        subscribed_vehicles: &String,
+    ) -> Result<Vec<Vehicle>, BotDbError> {
+        let connection = self.pool.get().await?;
+
+        let rows = connection
+            .query(GET_VEHICLES, &[subscribed_vehicles])
+            .await?;
+
+        let vehicles: Vec<Vehicle> = rows.into_iter().map(|row| row.into()).collect();
+
+        Ok(vehicles)
+    }
+
+    pub async fn get_vehicle(&self, plate: &str) -> Result<Vehicle, BotDbError> {
+        let connection = self.pool.get().await?;
+
+        let row = connection.query_one(GET_VEHICLE, &[&plate]).await?;
+
+        Ok(row.into())
+    }
+
+    pub async fn get_active_subscriptions_from_vehicle(
+        &self,
+        plate: &str,
+    ) -> Result<Vec<Chat>, BotDbError> {
+        let chat_ids = self.get_vehicle(plate).await?.subscribers_ids;
+
+        let result = if chat_ids.is_none() {
+            vec![]
+        } else {
+            let connection = self.pool.get().await?;
+
+            let chat_ids_str = chat_ids.unwrap();
+            let active_chats: Vec<Row> = connection
+                .query(FILTER_ACTIVE_CHATS, &[&chat_ids_str])
+                .await?;
+            active_chats.into_iter().map(|row| row.into()).collect()
+        };
+
+        Ok(result)
+    }
+
+    pub async fn get_subscriptions_from_vehicle_as_string(
+        &self,
+        plate: &str,
+    ) -> Result<Option<String>, BotDbError> {
+        Ok(self.get_vehicle(plate).await?.subscribers_ids)
+    }
 
     async fn check_user_exists(&self, chat_id: &i64) -> Result<bool, BotDbError> {
         let connection = self.pool.get().await?;
@@ -114,176 +208,11 @@ impl Repo {
     pub async fn find_or_create_vehicle(&self, plate: &str) -> Result<Vehicle, BotDbError> {
         match self.get_vehicle(plate).await {
             Ok(row) => Ok(row),
-            Err(_) => self.insert_vehicle_by_plate(plate).await,
+            Err(_) => self.insert_vehicle_plate(plate).await,
         }
     }
 
-    pub fn calculate_next_delivery(cron_expression: &str) -> Result<DateTime<Utc>, BotDbError> {
-        let schedule = Schedule::from_str(cron_expression)?;
-        let mut iterator = schedule.upcoming(Utc);
-
-        iterator.next().ok_or(BotDbError::NoTimestampsError)
-    }
-
-    pub async fn get_chat(&self, chat_id: &i64) -> Result<Chat, BotDbError> {
-        let connection = self.pool.get().await?;
-
-        let row = match connection.query_one(GET_CHAT, &[chat_id]).await {
-            Ok(r) => r,
-            Err(err) => {
-                log::error!("get_chat -> {}", err);
-                return Err(BotDbError::PgError(err));
-            }
-        };
-
-        Ok(row.into())
-    }
-
-    pub async fn get_rows(&self, query: String) -> Result<Vec<Row>, BotDbError> {
-        let connection = self.pool.get().await?;
-
-        Ok(connection.query(&query, &[]).await?)
-    }
-
-    pub async fn _get_vehicles_by_chat_id(
-        &self,
-        chat_id: &i64,
-    ) -> Result<Vec<Vehicle>, BotDbError> {
-        let _chat = self.get_chat(chat_id).await?;
-        todo!()
-    }
-
-    pub async fn get_vehicles_from_subs_string(
-        &self,
-        subscribed_vehicles: &String,
-    ) -> Result<Vec<Vehicle>, BotDbError> {
-        let connection = self.pool.get().await?;
-
-        let rows = connection
-            .query(GET_VEHICLES, &[subscribed_vehicles])
-            .await?;
-
-        let vehicles: Vec<Vehicle> = rows.into_iter().map(|row| row.into()).collect();
-
-        Ok(vehicles)
-    }
-
-    pub async fn get_vehicle(&self, plate: &str) -> Result<Vehicle, BotDbError> {
-        let connection = self.pool.get().await?;
-
-        let row = connection.query_one(GET_VEHICLE, &[&plate]).await?;
-
-        Ok(row.into())
-    }
-
-    pub async fn create_subscription(&self, plate: &str, chat_id: i64) -> Result<(), BotDbError> {
-        let current_subscriptions = self.get_subscriptions_from_vehicle_as_string(plate).await?;
-
-        if current_subscriptions.is_some_and(|list| {
-            list.split(',')
-                .any(|subscribed_id| subscribed_id == chat_id.to_string())
-        }) {
-            return Err(BotDbError::AlreadySubscribedError(
-                chat_id,
-                plate.to_string(),
-            ));
-        }
-
-        let mut connection = self.pool.get().await?;
-
-        let transaction = connection.transaction().await?;
-
-        let n1 = transaction
-            .execute(CONCANT_CHAT_TO_SUBSCRIBERS, &[&chat_id.to_string(), &plate])
-            .await?;
-        let n2 = transaction
-            .execute(CONCAT_VEHICLE_TO_SUBSCRIPTIONS, &[&chat_id, &plate])
-            .await?;
-
-        if n1 == n2 {
-            transaction.commit().await?;
-            Ok(())
-        } else {
-            log::error!("{n1} != {n2}");
-            transaction.rollback().await?;
-            Err(BotDbError::AlreadySubscribedError(
-                chat_id,
-                plate.to_string(),
-            ))
-        }
-    }
-
-    pub async fn unsubscribe_chat_id_to_vehicle(
-        &self,
-        plate: &str,
-        chat_id: i64,
-    ) -> Result<u64, BotDbError> {
-        let current_subscriptions = self.get_subscriptions_from_vehicle_as_string(plate).await?;
-
-        if current_subscriptions.is_none() {
-            return Ok(0);
-        }
-        let updated_subscriptions = current_subscriptions
-            .unwrap()
-            .split(",")
-            .filter(|x| *x == chat_id.to_string())
-            .collect::<String>();
-
-        let connection = self.pool.get().await?;
-
-        let n = connection
-            .execute(UPDATE_SUBSCRIBED_CHATS, &[&plate, &updated_subscriptions])
-            .await?;
-
-        Ok(n)
-    }
-
-    async fn _get_subscriptions_from_vehicle(&self, plate: &str) -> Result<Vec<i64>, BotDbError> {
-        let chat_ids = self.get_vehicle(plate).await?.subscribers_ids;
-
-        let result = if chat_ids.is_none() {
-            vec![]
-        } else {
-            let chat_ids_str = chat_ids.unwrap();
-            let mut split = chat_ids_str.split(',');
-
-            split.next_back(); // Removes the empty item
-            split
-                .filter_map(|id| id.parse::<i64>().ok())
-                .collect::<Vec<i64>>()
-        };
-
-        Ok(result)
-    }
-
-    pub async fn get_active_subscriptions_from_vehicle(
-        &self,
-        plate: &str,
-    ) -> Result<Vec<Chat>, BotDbError> {
-        let chat_ids = self.get_vehicle(plate).await?.subscribers_ids;
-
-        let result = if chat_ids.is_none() {
-            vec![]
-        } else {
-            let connection = self.pool.get().await?;
-
-            let chat_ids_str = chat_ids.unwrap();
-            let active_chats: Vec<Row> = connection
-                .query(FILTER_ACTIVE_CHATS, &[&chat_ids_str])
-                .await?;
-            active_chats.into_iter().map(|row| row.into()).collect()
-        };
-
-        Ok(result)
-    }
-
-    pub async fn get_subscriptions_from_vehicle_as_string(
-        &self,
-        plate: &str,
-    ) -> Result<Option<String>, BotDbError> {
-        Ok(self.get_vehicle(plate).await?.subscribers_ids)
-    }
-
+    // Inserts
     async fn insert_chat(
         &self,
         chat_id: &i64,
@@ -336,7 +265,8 @@ impl Repo {
 
         Ok(row)
     }
-    pub async fn insert_vehicle_by_plate(&self, plate: &str) -> Result<Vehicle, BotDbError> {
+
+    pub async fn insert_vehicle_plate(&self, plate: &str) -> Result<Vehicle, BotDbError> {
         let connection = self.pool.get().await?;
 
         let row = match connection.query_one(INSERT_VEHICLE_PLATE, &[&plate]).await {
@@ -350,6 +280,7 @@ impl Repo {
         Ok(row)
     }
 
+    // Deletes
     pub async fn delete_chat(&self, chat_id: &i64) -> Result<u64, BotDbError> {
         let connection = self.pool.get().await?;
 
@@ -357,6 +288,7 @@ impl Repo {
         Ok(n)
     }
 
+    // Update
     pub async fn modify_found_at_vehicle(
         &self,
         plate: &str,
@@ -396,18 +328,82 @@ impl Repo {
         Ok(n)
     }
 
-    pub async fn delete_tasks_by_plate(&self, plate: &str) -> Result<u64, BotDbError> {
+    pub async fn get_n_subscribers_by_plate(&self, plate: &str) -> Result<u64, BotDbError> {
         let connection = self.pool.get().await?;
         let n = connection
-            .execute(DELETE_FETCH_TASK_BY_PLATE, &[&plate])
+            .execute(COUNT_SUBSCRIBERS_PLATE, &[&plate])
             .await?;
         Ok(n)
     }
 
-    pub async fn subscribers_by_plate(&self, plate: &str) -> Result<u64, BotDbError> {
+    //Subscriptions
+
+    pub async fn create_subscription(&self, plate: &str, chat_id: i64) -> Result<(), BotDbError> {
+        let current_subscriptions = self.get_subscriptions_from_vehicle_as_string(plate).await?;
+
+        if current_subscriptions.is_some_and(|list| {
+            list.split(',')
+                .any(|subscribed_id| subscribed_id == chat_id.to_string())
+        }) {
+            return Err(BotDbError::AlreadySubscribedError(
+                chat_id,
+                plate.to_string(),
+            ));
+        }
+
+        let mut connection = self.pool.get().await?;
+
+        let transaction = connection.transaction().await?;
+
+        let n1 = transaction
+            .execute(CONCANT_CHAT_TO_SUBSCRIBERS, &[&chat_id.to_string(), &plate])
+            .await?;
+        let n2 = transaction
+            .execute(CONCAT_VEHICLE_TO_SUBSCRIPTIONS, &[&chat_id, &plate])
+            .await?;
+
+        if n1 == n2 {
+            transaction.commit().await?;
+            Ok(())
+        } else {
+            log::error!("{n1} != {n2}");
+            transaction.rollback().await?;
+            Err(BotDbError::AlreadySubscribedError(
+                chat_id,
+                plate.to_string(),
+            ))
+        }
+    }
+
+    pub async fn unsubscribe_chat_id_from_vehicle(
+        &self,
+        plate: &str,
+        chat_id: i64,
+    ) -> Result<u64, BotDbError> {
+        let current_subscriptions = self.get_subscriptions_from_vehicle_as_string(plate).await?;
+
+        if current_subscriptions.is_none() {
+            return Ok(0);
+        }
+        let updated_subscriptions = current_subscriptions
+            .unwrap()
+            .split(",")
+            .filter(|x| *x == chat_id.to_string())
+            .collect::<String>();
+
+        let connection = self.pool.get().await?;
+
+        let n = connection
+            .execute(UPDATE_SUBSCRIBED_CHATS, &[&plate, &updated_subscriptions])
+            .await?;
+
+        Ok(n)
+    }
+
+    pub async fn delete_tasks_by_plate(&self, plate: &str) -> Result<u64, BotDbError> {
         let connection = self.pool.get().await?;
         let n = connection
-            .execute(COUNT_SUBSCRIBERS_PLATE, &[&plate])
+            .execute(DELETE_FETCH_TASK_BY_PLATE, &[&plate])
             .await?;
         Ok(n)
     }
@@ -536,7 +532,7 @@ mod db_tests {
         let chat = db_controller.get_chat(&testing_chat).await.unwrap();
 
         let subbed = db_controller
-            .get_vehicles_from_subs_string(&chat.subscribed_vehicles.unwrap())
+            .get_vehicles_by_chat_id(&chat.id)
             .await
             .unwrap();
 
@@ -694,7 +690,7 @@ mod db_tests {
         let db_controller = Repo::new_no_tls().await.unwrap();
         let plate = "PLATE123";
 
-        match db_controller.insert_vehicle_by_plate(plate).await {
+        match db_controller.insert_vehicle_plate(plate).await {
             Ok(vehicle) => {
                 assert_eq!(vehicle.plate, plate);
             }
