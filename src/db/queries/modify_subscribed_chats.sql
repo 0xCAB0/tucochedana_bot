@@ -1,0 +1,1 @@
+UPDATE chats SET subscribed_vehicles = $1 WHERE id = $2

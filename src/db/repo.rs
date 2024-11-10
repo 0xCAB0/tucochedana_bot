@@ -36,7 +36,8 @@ const _DELETE_VEHICLE: &str = include_str!("queries/delete_vehicle.sql");
 const _DELETE_ALL_FANG_TASKS_BY_PROFILE_ID: &str =
     include_str!("queries/delete_all_tasks_by_profile_id.sql");
 const DELETE_FETCH_TASK_BY_PLATE: &str = include_str!("queries/delete_fetch_tasks_by_plate.sql");
-const UPDATE_SUBSCRIBED_CHATS: &str = include_str!("queries/update_subscribed_chats.sql");
+const MODIFY_SUBSCRIBERS_VEHICLE: &str = include_str!("queries/modify_subscribers_vehicle.sql");
+const MODIFY_SUBSCRIBED_CHAT: &str = include_str!("queries/modify_subscribed_chats.sql");
 const FILTER_ACTIVE_CHATS: &str = include_str!("queries/filter_active_chats.sql");
 const COUNT_SUBSCRIBERS_PLATE: &str = include_str!("queries/count_subscribers_plate.sql");
 
@@ -399,6 +400,7 @@ impl Repo {
         }
     }
 
+    /// Untested
     pub async fn unsubscribe_chat_id_from_vehicle(
         &self,
         plate: &str,
@@ -418,7 +420,35 @@ impl Repo {
         let connection = self.pool.get().await?;
 
         let n = connection
-            .execute(UPDATE_SUBSCRIBED_CHATS, &[&plate, &updated_subscriptions])
+            .execute(
+                MODIFY_SUBSCRIBERS_VEHICLE,
+                &[&updated_subscriptions, &plate],
+            )
+            .await?;
+
+        Ok(n)
+    }
+
+    /// Untested
+    pub async fn end_subscription_from_chat(
+        &self,
+        plate: &str,
+        chat_id: i64,
+    ) -> Result<u64, BotDbError> {
+        let current_subscriptions = self.get_chat(&chat_id).await?.subscribed_vehicles;
+        if current_subscriptions.is_none() {
+            return Ok(0);
+        }
+        let updated_subscriptions = current_subscriptions
+            .unwrap()
+            .split(",")
+            .filter(|x| *x == chat_id.to_string())
+            .collect::<String>();
+
+        let connection = self.pool.get().await?;
+
+        let n = connection
+            .execute(MODIFY_SUBSCRIBED_CHAT, &[&plate, &updated_subscriptions])
             .await?;
 
         Ok(n)
