@@ -181,6 +181,9 @@ impl UpdateProcessor {
             ClientState::Initial => self.process_initial().await,
 
             ClientState::AddVehicle => {
+                self.repo
+                    .modify_state(&self.chat.id, ClientState::Initial)
+                    .await?;
                 if let Command::UnknownCommand(_) = self.command {
                     self.add_vehicle().await
                 } else {

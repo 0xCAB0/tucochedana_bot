@@ -1,5 +1,5 @@
 use crate::{
-    db::model::{client_state::ClientState, vehicle::Vehicle},
+    db::model::vehicle::Vehicle,
     tasks::fetch::FetchTask,
     tucochedana::client::TuCocheDanaClient,
     update_handler::process_update::{TaskToManage, UpdateProcessor},
@@ -33,10 +33,6 @@ impl UpdateProcessor {
             //Si el vehículo es añadido por un usuario activo -> Lanzar task
             if self.chat.active {
                 self.repo.create_subscription(&plate, self.chat.id).await?;
-
-                self.repo
-                    .modify_state(&self.chat.id, ClientState::Initial)
-                    .await?;
                 self.start_message(Some(&format!("Vehículo {plate} añadido✅\ncomo tiene las alertas activas, le avisaremos si se registra")))
                     .await?;
                 return Ok(TaskToManage::FetchTask(
@@ -55,12 +51,6 @@ impl UpdateProcessor {
         } else {
             format!("El vehículo {plate} ya ha sido registrado por otro usuario, le añadiremos como interesado")
         };
-
-        // Restaurar el estado
-
-        self.repo
-            .modify_state(&self.chat.id, ClientState::Initial)
-            .await?;
 
         self.start_message(Some(&text)).await?;
 
