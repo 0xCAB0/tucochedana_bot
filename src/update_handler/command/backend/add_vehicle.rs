@@ -27,6 +27,9 @@ impl UpdateProcessor {
         }
 
         let text = if self.repo.insert_vehicle(vehicle).await.is_ok() {
+            self.repo
+                .append_subscription_to_chat(&plate, &self.chat.id)
+                .await?;
             //Si el vehículo es añadido por un usuario activo -> Lanzar task
             if self.chat.active {
                 self.repo.create_subscription(&plate, self.chat.id).await?;

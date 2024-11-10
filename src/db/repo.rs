@@ -328,6 +328,8 @@ impl Repo {
         Ok(n)
     }
 
+    //Subscriptions
+
     pub async fn get_n_subscribers_by_plate(&self, plate: &str) -> Result<u64, BotDbError> {
         let connection = self.pool.get().await?;
         let n = connection
@@ -336,7 +338,25 @@ impl Repo {
         Ok(n)
     }
 
-    //Subscriptions
+    pub async fn append_subscription_to_chat(
+        &self,
+        plate: &str,
+        chat_id: &i64,
+    ) -> Result<(), BotDbError> {
+        let connection = self.pool.get().await?;
+
+        match connection
+            .execute(CONCAT_VEHICLE_TO_SUBSCRIPTIONS, &[&chat_id, &plate])
+            .await
+        {
+            Ok(n) if n > 0 => Ok(()),
+            Ok(_) => Err(BotDbError::AlreadySubscribedError(
+                *chat_id,
+                plate.to_string(),
+            )),
+            Err(err) => Err(BotDbError::PgError(err)),
+        }
+    }
 
     pub async fn create_subscription(&self, plate: &str, chat_id: i64) -> Result<(), BotDbError> {
         let current_subscriptions = self.get_subscriptions_from_vehicle_as_string(plate).await?;
