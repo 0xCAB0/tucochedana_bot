@@ -42,9 +42,9 @@ chrono = { version = "0.4", features = ["serde"] }
 # HTTP Server
 openssl = { version = "0.10" }
 axum = "0.7.7"
-rand = "0.8"
 
 [dev-dependencies]
 # Testing
+rand = "0.8"
 mockito = "1.5.0"
 tower = "0.5"
