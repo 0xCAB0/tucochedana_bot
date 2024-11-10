@@ -1,7 +1,9 @@
+use bb8_postgres::tokio_postgres::NoTls;
 use chrono::{DateTime, Duration, Timelike, Utc};
+use fang::{AsyncQueue, FangError};
 use rand::Rng;
 
-use crate::db::*;
+use crate::{db::*, DATABASE_URL};
 
 pub async fn setup() {
     clear_database().await.unwrap();
@@ -119,4 +121,14 @@ pub fn random_datetime() -> DateTime<Utc> {
     random_time
         .with_nanosecond((random_time.nanosecond() / 1_000) * 1_000)
         .unwrap()
+}
+
+pub async fn create_mock_queue() -> Result<AsyncQueue<NoTls>, FangError> {
+    let mut queue: AsyncQueue<NoTls> = AsyncQueue::builder()
+        .uri(DATABASE_URL.to_string())
+        .max_pool_size(5_u32)
+        .build();
+
+    queue.connect(NoTls).await.unwrap();
+    Ok(queue)
 }

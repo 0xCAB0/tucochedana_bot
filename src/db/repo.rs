@@ -161,10 +161,14 @@ impl Repo {
             let connection = self.pool.get().await?;
 
             let chat_ids_str = chat_ids.unwrap();
-            let active_chats: Vec<Row> = connection
+            let mut active_chats: Vec<Row> = connection
                 .query(FILTER_ACTIVE_CHATS, &[&chat_ids_str])
                 .await?;
-            active_chats.into_iter().map(|row| row.into()).collect()
+            active_chats
+                .pop()
+                .into_iter()
+                .map(|row| row.into())
+                .collect()
         };
 
         Ok(result)
