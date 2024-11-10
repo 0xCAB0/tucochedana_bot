@@ -50,7 +50,7 @@ mod server_tests {
     use frankenstein::Update;
     use frankenstein::UpdateContent;
     use frankenstein::User;
-    use lambda_http::tower::ServiceExt;
+    use tower::ServiceExt;
 
     use super::*;
     use crate::DATABASE_URL;
