@@ -16,6 +16,7 @@ fn construct_test_db_url(base_url: &str, test_db_name: &str) -> String {
 }
 
 impl Repo {
+    #[cfg(test)]
     /// Sets up a new, unique test database for each test, applies migrations, and returns a `Repo` instance.
     pub async fn new_for_test() -> Result<Self, BotDbError> {
         // Load environment variables from `.env`
@@ -37,9 +38,14 @@ impl Repo {
             .unwrap_or_else(|_| panic!("Error connecting to {:?}", test_db_url));
 
         // Run migrations on the test database
-        test_connection
+        let result = test_connection
             .run_pending_migrations(FileBasedMigrations::find_migrations_directory().unwrap())
             .unwrap();
+
+        println!("Migrations run ..");
+        for res in result {
+            println!("{:?}", res);
+        }
 
         let pool = Repo::pool(&DATABASE_URL).await?;
         Ok(Repo {
