@@ -14,7 +14,7 @@ impl UpdateProcessor {
         match self.repo.end_subscription(plate, self.chat.id).await {
             Ok((n_subscribers, _)) => {
                 self.get_vehicles(Some(&format!(
-                    "El vehículo {plate} ha sido eliminado correctamente"
+                    "El vehículo {plate} ha sido eliminado correctamente✅"
                 )))
                 .await?;
                 // 3. If vehicle subscribers_ids is empty -> Remove task & delete vehicle

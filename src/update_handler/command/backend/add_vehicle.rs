@@ -33,7 +33,7 @@ impl UpdateProcessor {
             //Si el vehículo es añadido por un usuario activo -> Lanzar task
             if self.chat.active {
                 self.repo.create_subscription(&plate, self.chat.id).await?;
-                self.start_message(Some(&format!("Vehículo {plate} añadido✅\ncomo tiene las alertas activas, le avisaremos si se registra")))
+                self.get_vehicles(Some(&format!("Vehículo {plate} añadido✅\ncomo tiene las alertas activas, le avisaremos si se registra")))
                     .await?;
                 return Ok(TaskToManage::FetchTask(
                     FetchTask::builder().plate(plate).build(),
@@ -52,7 +52,7 @@ impl UpdateProcessor {
             format!("El vehículo {plate} ya ha sido registrado por otro usuario, le añadiremos como interesado")
         };
 
-        self.start_message(Some(&text)).await?;
+        self.get_vehicles(Some(&text)).await?;
 
         Ok(TaskToManage::NoTask)
     }

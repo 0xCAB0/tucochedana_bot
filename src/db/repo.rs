@@ -191,7 +191,9 @@ impl Repo {
         Ok(n == 1)
     }
 
-    /// Returns if it has been created
+    // Inserts
+
+    /// Returns true if insert, false if fetched
     pub async fn find_or_create_chat(
         &self,
         chat_id: &i64,
@@ -219,7 +221,40 @@ impl Repo {
         }
     }
 
-    // Inserts
+    pub async fn insert_vehicle(&self, vehicle: Vehicle) -> Result<Vehicle, BotDbError> {
+        let connection = self.pool.get().await?;
+
+        let row = match connection
+            .query_one(
+                INSERT_VEHICLE,
+                &[&vehicle.plate, &vehicle.subscribers_ids, &vehicle.found_at],
+            )
+            .await
+        {
+            Ok(r) => r.into(),
+            Err(err) => {
+                log::error!("insert_vehicle -> {}", err);
+                return Err(BotDbError::PgError(err));
+            }
+        };
+
+        Ok(row)
+    }
+
+    async fn insert_vehicle_plate(&self, plate: &str) -> Result<Vehicle, BotDbError> {
+        let connection = self.pool.get().await?;
+
+        let row = match connection.query_one(INSERT_VEHICLE_PLATE, &[&plate]).await {
+            Ok(r) => r.into(),
+            Err(err) => {
+                log::error!("insert_vehicle_by_plate -> {}", err);
+                return Err(BotDbError::PgError(err));
+            }
+        };
+
+        Ok(row)
+    }
+
     async fn insert_chat(
         &self,
         chat_id: &i64,
@@ -251,40 +286,6 @@ impl Repo {
             }
         };
         Ok(row.into())
-    }
-
-    pub async fn insert_vehicle(&self, vehicle: Vehicle) -> Result<Vehicle, BotDbError> {
-        let connection = self.pool.get().await?;
-
-        let row = match connection
-            .query_one(
-                INSERT_VEHICLE,
-                &[&vehicle.plate, &vehicle.subscribers_ids, &vehicle.found_at],
-            )
-            .await
-        {
-            Ok(r) => r.into(),
-            Err(err) => {
-                log::error!("insert_vehicle -> {}", err);
-                return Err(BotDbError::PgError(err));
-            }
-        };
-
-        Ok(row)
-    }
-
-    pub async fn insert_vehicle_plate(&self, plate: &str) -> Result<Vehicle, BotDbError> {
-        let connection = self.pool.get().await?;
-
-        let row = match connection.query_one(INSERT_VEHICLE_PLATE, &[&plate]).await {
-            Ok(r) => r.into(),
-            Err(err) => {
-                log::error!("insert_vehicle_by_plate -> {}", err);
-                return Err(BotDbError::PgError(err));
-            }
-        };
-
-        Ok(row)
     }
 
     // Deletes
