@@ -94,9 +94,8 @@ mod fetch_task_tests {
 
     #[tokio::test]
     async fn test_fetch_task() {
-        setup().await;
-
-        let db_controller = Repo::new_no_tls().await.unwrap();
+        let db_controller = Repo::new_for_test().await.unwrap();
+        populate_database(&db_controller).await.unwrap();
         let connection = db_controller.get_connection().get().await.unwrap();
 
         let testing_plate = String::from("MATRICULA1");

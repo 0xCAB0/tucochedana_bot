@@ -1,32 +1,87 @@
 use bb8_postgres::tokio_postgres::NoTls;
 use chrono::{DateTime, Duration, Timelike, Utc};
+use diesel::{Connection, PgConnection, RunQueryDsl};
+use diesel_migrations::{FileBasedMigrations, MigrationHarness};
 use fang::{AsyncQueue, FangError};
 use rand::Rng;
 
 use crate::{db::*, DATABASE_URL};
 
-pub async fn setup() {
-    clear_database().await.unwrap();
-    populate_database().await.unwrap();
+fn construct_test_db_url(base_url: &str, test_db_name: &str) -> String {
+    // Split the URL at the last `/` to get the base connection string without the original database name
+    let pos = base_url.rfind('/').expect("Invalid database URL format");
+
+    // Construct the new test database URL by replacing the original database name
+    format!("{}{}", &base_url[..pos + 1], test_db_name)
 }
 
-async fn clear_database() -> Result<(u64, u64), BotDbError> {
+impl Repo {
+    /// Sets up a new, unique test database for each test, applies migrations, and returns a `Repo` instance.
+    pub async fn new_for_test() -> Result<Self, BotDbError> {
+        // Load environment variables from `.env`
+        dotenvy::dotenv().ok();
+
+        // Generate a unique test database name
+        let test_db_name = format!("test_db_{}", rand::random::<u32>());
+
+        let mut connection = PgConnection::establish(&DATABASE_URL)
+            .unwrap_or_else(|_| panic!("Error connecting to {:?}", *DATABASE_URL));
+
+        let _ =
+            diesel::sql_query(format!("CREATE DATABASE {test_db_name}")).execute(&mut connection);
+
+        // Construct the URL for the test database
+        let test_db_url = construct_test_db_url(&DATABASE_URL, &test_db_name);
+
+        let mut test_connection = PgConnection::establish(&test_db_url)
+            .unwrap_or_else(|_| panic!("Error connecting to {:?}", test_db_url));
+
+        // Run migrations on the test database
+        test_connection
+            .run_pending_migrations(FileBasedMigrations::find_migrations_directory().unwrap())
+            .unwrap();
+
+        let pool = Repo::pool(&DATABASE_URL).await?;
+        Ok(Repo {
+            pool,
+            database_name: Some(test_db_name),
+        })
+    }
+
+    /// Cleans up the test database by dropping it.
+    pub async fn cleanup_test_db(&self) -> Result<(), BotDbError> {
+        let db_controller = Repo::new_no_tls().await.unwrap();
+        let connection = db_controller.get_connection().get().await.unwrap();
+
+        connection
+            .execute(
+                "DROP DATABASE ($1)",
+                &[&self.database_name.clone().unwrap()],
+            )
+            .await?;
+        Ok(())
+    }
+}
+
+async fn _clear_database() -> Result<(u64, u64), BotDbError> {
     dotenvy::dotenv().ok();
     let db_controller = Repo::new_no_tls().await.unwrap();
     let connection = db_controller.get_connection().get().await?;
 
-    let n1 = &connection.execute("DELETE FROM chats", &[]).await?;
-    let n2 = &connection.execute("DELETE FROM vehicles", &[]).await?;
+    let n1 = &connection
+        .execute("TRUNCATE TABLE chats RESTART IDENTITY CASCADE", &[])
+        .await?;
+    let n2 = &connection
+        .execute("TRUNCATE TABLE vehicles RESTART IDENTITY CASCADE", &[])
+        .await?;
 
     log::info!("Cleared {} chats | {} vehicles", n1, n2);
 
     Ok((*n1, *n2))
 }
 
-async fn populate_database() -> Result<(), BotDbError> {
-    dotenvy::dotenv().ok();
-    let db_controller = Repo::new_no_tls().await.unwrap();
-    let connection = db_controller.get_connection().get().await?;
+pub async fn populate_database(repo: &Repo) -> Result<(), BotDbError> {
+    let connection = repo.get_connection().get().await?;
 
     // Insert 3 test users into the `chats` table using connection.execute
     // Insert chats if not exists, conflict on `id`

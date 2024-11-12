@@ -42,7 +42,9 @@ const FILTER_ACTIVE_CHATS: &str = include_str!("queries/filter_active_chats.sql"
 const COUNT_SUBSCRIBERS_PLATE: &str = include_str!("queries/count_subscribers_plate.sql");
 
 pub struct Repo {
-    pool: Pool<PostgresConnectionManager<NoTls>>,
+    pub(crate) pool: Pool<PostgresConnectionManager<NoTls>>,
+    #[cfg(test)]
+    pub(crate) database_name: Option<String>,
 }
 
 /// Setup methods
@@ -55,7 +57,7 @@ impl Repo {
         REPO.get_or_try_init(Repo::new).await
     }
 
-    async fn pool(url: &str) -> Result<Pool<PostgresConnectionManager<NoTls>>, BotDbError> {
+    pub async fn pool(url: &str) -> Result<Pool<PostgresConnectionManager<NoTls>>, BotDbError> {
         let pg_mgr = PostgresConnectionManager::new_from_stringlike(url, NoTls)?;
 
         Ok(Pool::builder().build(pg_mgr).await?)
@@ -63,7 +65,11 @@ impl Repo {
 
     pub async fn new() -> Result<Self, BotDbError> {
         let pl = Self::pool(&DATABASE_URL).await?;
-        Ok(Repo { pool: pl })
+        Ok(Repo {
+            pool: pl,
+            #[cfg(test)]
+            database_name: None,
+        })
     }
 
     #[cfg(test)]
@@ -71,7 +77,10 @@ impl Repo {
         use crate::DATABASE_URL;
 
         let pl = Self::pool(&DATABASE_URL).await?;
-        Ok(Repo { pool: pl })
+        Ok(Repo {
+            pool: pl,
+            database_name: None,
+        })
     }
 
     pub fn as_u64_le(array: &[u8; 8]) -> u64 {
@@ -371,6 +380,7 @@ impl Repo {
 
         if current_subscriptions.is_some_and(|list| {
             list.split(',')
+                .map(str::trim)
                 .any(|subscribed_id| subscribed_id == chat_id.to_string())
         }) {
             return Err(BotDbError::AlreadySubscribedError(
@@ -463,7 +473,7 @@ impl Repo {
             Some(subscribers) => {
                 let valid_items: Vec<_> = subscribers
                     .split(',')
-                    .map(str::trim) // Ignore whitespaces
+                    .map(str::trim)
                     .filter(|&x| x == member)
                     .collect();
 
@@ -491,9 +501,10 @@ mod db_tests {
 
     #[tokio::test]
     async fn test_modify_state() {
-        setup().await;
         //Pick a random user of the DB
-        let db_controller = Repo::new_no_tls().await.unwrap();
+        let db_controller = Repo::new_for_test().await.unwrap();
+        populate_database(&db_controller).await.unwrap();
+
         let connection = db_controller.get_connection().get().await.unwrap();
 
         let chat = db_controller
@@ -540,10 +551,8 @@ mod db_tests {
 
     #[tokio::test]
     async fn test_subscribe_to_vehicle() {
-        setup().await;
-
-        let db_controller = Repo::new_no_tls().await.unwrap();
-        let _connection = db_controller.get_connection().get().await.unwrap();
+        let db_controller = Repo::new_for_test().await.unwrap();
+        populate_database(&db_controller).await.unwrap();
 
         let testing_plate = "GHI789";
         let testing_chat = 3;
@@ -575,17 +584,18 @@ mod db_tests {
             .clone()
             .unwrap()
             .split(',')
-            .any(|subscriber| subscriber == testing_chat.to_string()))
+            .any(|subscriber| subscriber == testing_chat.to_string()));
         // Añadir a uno con contenido
+
+        db_controller.cleanup_test_db().await.unwrap();
 
         //db_controller.subscribe_chat_id_to_vehicle(plate, chat_id)
     }
 
     #[tokio::test]
     async fn list_my_vehicles() {
-        setup().await;
-
-        let db_controller = Repo::new_no_tls().await.unwrap();
+        let db_controller = Repo::new_for_test().await.unwrap();
+        populate_database(&db_controller).await.unwrap();
         let _connection = db_controller.get_connection().get().await.unwrap();
 
         let expected_subscriptions = vec![
@@ -612,14 +622,14 @@ mod db_tests {
         for element in expected_subscriptions {
             assert!(subbed.contains(&element));
         }
+        db_controller.cleanup_test_db().await.unwrap();
     }
 
     /// Test for modifying the active state of a vehicle
     #[tokio::test]
     async fn test_modify_found_at_vehicle() {
-        setup().await;
-
-        let db_controller = Repo::new_no_tls().await.unwrap();
+        let db_controller = Repo::new_for_test().await.unwrap();
+        populate_database(&db_controller).await.unwrap();
         let connection = db_controller.get_connection().get().await.unwrap();
         let test_datetime = random_datetime();
         // Modify the active state of a vehicle
@@ -640,14 +650,14 @@ mod db_tests {
         let active: DateTime<Utc> = row.get(0);
         assert_eq!(active, test_datetime);
         assert_eq!(n, 1);
+        db_controller.cleanup_test_db().await.unwrap();
     }
 
     /// Test for modifying the active state of a chat
     #[tokio::test]
     async fn test_modify_active_chat() {
-        setup().await;
-
-        let db_controller = Repo::new_no_tls().await.unwrap();
+        let db_controller = Repo::new_for_test().await.unwrap();
+        populate_database(&db_controller).await.unwrap();
         let connection = db_controller.get_connection().get().await.unwrap();
 
         // Modify the active state of a chat
@@ -681,13 +691,13 @@ mod db_tests {
         let active: bool = row.get(0);
         assert!(!active);
         assert_eq!(n, 1);
+        db_controller.cleanup_test_db().await.unwrap();
     }
 
     #[tokio::test]
     async fn test_get_active_subscriptions_from_vehicle() {
-        setup().await;
-
-        let db_controller = Repo::new_no_tls().await.unwrap();
+        let db_controller = Repo::new_for_test().await.unwrap();
+        populate_database(&db_controller).await.unwrap();
         let connection = db_controller.get_connection().get().await.unwrap();
 
         // Setup a test vehicle with specific subscribers, some active and some inactive
@@ -732,13 +742,13 @@ mod db_tests {
 
         // Assert the result matches the expected active chat IDs
         assert_eq!(active_chat_ids, vec![1, 3]);
+        db_controller.cleanup_test_db().await.unwrap();
     }
 
     #[tokio::test]
     async fn test_insert_vehicle() {
-        setup().await;
-
-        let db_controller = Repo::new_no_tls().await.unwrap();
+        let db_controller = Repo::new_for_test().await.unwrap();
+        populate_database(&db_controller).await.unwrap();
 
         let test_vehicle = Vehicle {
             plate: "TEST123".to_string(),
@@ -753,14 +763,14 @@ mod db_tests {
                 assert!(vehicle.found_at.is_none());
             }
             Err(e) => panic!("Failed to insert vehicle: {:?}", e),
-        }
+        };
+        db_controller.cleanup_test_db().await.unwrap();
     }
 
     #[tokio::test]
     async fn test_insert_vehicle_by_plate() {
-        setup().await;
-
-        let db_controller = Repo::new_no_tls().await.unwrap();
+        let db_controller = Repo::new_for_test().await.unwrap();
+        populate_database(&db_controller).await.unwrap();
         let plate = "PLATE123";
 
         match db_controller.insert_vehicle_plate(plate).await {
@@ -769,5 +779,6 @@ mod db_tests {
             }
             Err(e) => panic!("Failed to insert vehicle by plate: {:?}", e),
         }
+        db_controller.cleanup_test_db().await.unwrap();
     }
 }
