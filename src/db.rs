@@ -18,6 +18,8 @@ pub enum BotDbError {
     NoTimestampsError,
     #[error("Chat {0} already subscribed to vehicle '{1}'")]
     AlreadySubscribedError(i64, String),
+    #[error("Could end subscription from {0} to vehicle '{1}': {2}")]
+    CouldNotEndSubscription(i64, String, String),
 }
 
 pub use repo::Repo;

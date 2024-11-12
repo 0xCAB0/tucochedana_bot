@@ -400,58 +400,74 @@ impl Repo {
         }
     }
 
-    /// Untested
-    pub async fn unsubscribe_chat_id_from_vehicle(
+    /// Returns the new size of subscriptions and subscribers lists
+    pub async fn end_subscription(
         &self,
         plate: &str,
         chat_id: i64,
-    ) -> Result<u64, BotDbError> {
-        let current_subscriptions = self.get_subscriptions_from_vehicle_as_string(plate).await?;
+    ) -> Result<(u64, u64), BotDbError> {
+        let current_subscribers = self.get_subscriptions_from_vehicle_as_string(plate).await?;
+        let current_subscriptions = self.get_chat(&chat_id).await?.subscribed_vehicles;
 
-        if current_subscriptions.is_none() {
-            return Ok(0);
+        let (n_subscribers, updated_subscribers) =
+            Self::pop_member_from_subs_string(current_subscribers, chat_id.to_string());
+
+        let (n_subscriptions, updated_subscriptions) =
+            Self::pop_member_from_subs_string(current_subscriptions, plate.to_string());
+
+        if n_subscribers == 0 || n_subscriptions == 0 {
+            let reason = if n_subscribers == 0 {
+                format!("The vehicle {plate} doesn't have any subscribers")
+            } else {
+                format!("User {chat_id} doesn't have any subscription at the moment")
+            };
+            return Err(BotDbError::CouldNotEndSubscription(
+                chat_id,
+                plate.to_string(),
+                reason,
+            ));
         }
-        let updated_subscriptions = current_subscriptions
-            .unwrap()
-            .split(",")
-            .filter(|x| *x == chat_id.to_string())
-            .collect::<String>();
 
-        let connection = self.pool.get().await?;
+        let mut connection = self.pool.get().await?;
+        let transaction = connection.transaction().await?;
 
-        let n = connection
-            .execute(
-                MODIFY_SUBSCRIBERS_VEHICLE,
-                &[&updated_subscriptions, &plate],
-            )
+        let n = transaction
+            .execute(MODIFY_SUBSCRIBERS_VEHICLE, &[&updated_subscribers, &plate])
             .await?;
 
-        Ok(n)
+        let n1 = transaction
+            .execute(MODIFY_SUBSCRIBED_CHAT, &[&updated_subscriptions, &chat_id])
+            .await?;
+
+        if n != n1 {
+            transaction.rollback().await?;
+            return Err(BotDbError::CouldNotEndSubscription(
+                chat_id,
+                plate.to_string(),
+                "Update query failed".to_string(),
+            ));
+        }
+
+        Ok((n_subscribers, n_subscriptions))
     }
 
-    /// Untested
-    pub async fn end_subscription_from_chat(
-        &self,
-        plate: &str,
-        chat_id: i64,
-    ) -> Result<u64, BotDbError> {
-        let current_subscriptions = self.get_chat(&chat_id).await?.subscribed_vehicles;
-        if current_subscriptions.is_none() {
-            return Ok(0);
+    /// Works for both chat.subscribed_vehicles and vehicle.subscribed_ids
+    fn pop_member_from_subs_string(
+        subscription_string: Option<String>,
+        member: String,
+    ) -> (u64, String) {
+        match subscription_string {
+            Some(subscribers) => {
+                let valid_items: Vec<_> = subscribers
+                    .split(',')
+                    .map(str::trim) // Ignore whitespaces
+                    .filter(|&x| x == member)
+                    .collect();
+
+                (valid_items.len() as u64, valid_items.join(","))
+            }
+            None => (0, String::new()),
         }
-        let updated_subscriptions = current_subscriptions
-            .unwrap()
-            .split(",")
-            .filter(|x| *x == chat_id.to_string())
-            .collect::<String>();
-
-        let connection = self.pool.get().await?;
-
-        let n = connection
-            .execute(MODIFY_SUBSCRIBED_CHAT, &[&plate, &updated_subscriptions])
-            .await?;
-
-        Ok(n)
     }
 
     pub async fn delete_tasks_by_plate(&self, plate: &str) -> Result<u64, BotDbError> {

@@ -22,6 +22,7 @@ pub const SELECT_COMMAND_TEXT: &str = "Seleccione un comando";
 pub enum TaskToManage {
     FetchTask(FetchTask),
     FetchTasks(Vec<FetchTask>),
+    RemoveTask(String),
     RemoveTasks(String),
     NoTask,
 }
@@ -164,6 +165,10 @@ impl UpdateProcessor {
                     Self::remove_tasks(subscribers).await?;
                 }
 
+                TaskToManage::RemoveTask(plate) => {
+                    processor.repo.delete_tasks_by_plate(&plate).await?;
+                }
+
                 TaskToManage::NoTask => (),
             },
         }
@@ -220,10 +225,7 @@ impl UpdateProcessor {
                 Ok(TaskToManage::NoTask)
             }
 
-            Command::RemoveVehicle => {
-                self.remove_vehicle().await?;
-                Ok(TaskToManage::NoTask)
-            }
+            Command::RemoveVehicle => self.remove_vehicle().await,
 
             Command::StartFetch => self.start_fetch().await,
 

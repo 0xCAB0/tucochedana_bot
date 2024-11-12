@@ -18,10 +18,10 @@ impl UpdateProcessor {
                 format!("/check_vehicle {}", vehicle.plate),
             ));
 
-            // rows[num].push((
-            //     DELETE_EMOJI.to_string(),
-            //     format!("/delete_vehicle {}", vehicle.plate),
-            // ));
+            rows[num].push((
+                DELETE_EMOJI.to_string(),
+                format!("/delete_vehicle {}", vehicle.plate),
+            ));
         });
         rows.push(vec![(
             ADD_VEHICLE.to_string(),
