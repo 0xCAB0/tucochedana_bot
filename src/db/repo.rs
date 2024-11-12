@@ -121,7 +121,7 @@ impl Repo {
         let chat = self.get_chat(chat_id).await?;
 
         match chat.subscribed_vehicles {
-            Some(subs) => self.get_vehicles_from_subs_string(&subs).await,
+            Some(mut subs) => self.get_vehicles_from_subs_string(&mut subs).await,
 
             None => Ok(vec![]),
         }
@@ -129,9 +129,11 @@ impl Repo {
 
     async fn get_vehicles_from_subs_string(
         &self,
-        subscribed_vehicles: &String,
+        subscribed_vehicles: &mut String,
     ) -> Result<Vec<Vehicle>, BotDbError> {
         let connection = self.pool.get().await?;
+
+        subscribed_vehicles.retain(|c| !c.is_whitespace());
 
         let rows = connection
             .query(GET_VEHICLES, &[subscribed_vehicles])
