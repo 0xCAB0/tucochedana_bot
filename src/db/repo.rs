@@ -451,6 +451,8 @@ impl Repo {
             ));
         }
 
+        transaction.commit().await?;
+
         Ok((n_subscribers, n_subscriptions))
     }
 
