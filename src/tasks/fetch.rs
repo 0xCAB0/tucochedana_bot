@@ -108,7 +108,6 @@ mod fetch_task_tests {
     #[tokio::test]
     async fn test_fetch_task() {
         let db_controller = Repo::new_for_test().await.unwrap();
-        db_controller.populate_database().await.unwrap();
         let connection = db_controller.get_connection().get().await.unwrap();
 
         let testing_plate = String::from("MATRICULA1");
@@ -172,10 +171,12 @@ ON CONFLICT (plate) DO NOTHING",
                 Some(err) if err.description.contains("chat not found") => (), // Ignore invalid chat_id
                 Some(err) => {
                     eprintln!("{:#?}", err);
+                    db_controller.cleanup_test_db().await.unwrap();
                     unreachable!()
                 }
                 None => (),
             }
         }
+        db_controller.cleanup_test_db().await.unwrap();
     }
 }

@@ -501,7 +501,7 @@ mod db_tests {
 
     use super::*;
 
-    pub fn random_datetime() -> DateTime<Utc> {
+    fn random_datetime() -> DateTime<Utc> {
         use chrono::Utc;
 
         let now = Utc::now();
@@ -554,17 +554,25 @@ mod db_tests {
             let mut test_connection = PgConnection::establish(&test_db_url)
                 .unwrap_or_else(|_| panic!("Error connecting to {:?}", test_db_url));
 
-            // Run migrations on the test database
-            let result = test_connection
-                .run_pending_migrations(FileBasedMigrations::find_migrations_directory().unwrap())
-                .unwrap();
+            // Paths to migrations directories
+            let project_root = std::env::current_dir().expect("Could not get project root");
+            let migrations_dir = FileBasedMigrations::find_migrations_directory()
+                .expect("Could not find 'migrations' directory");
+            let testing_migrations_dir =
+                FileBasedMigrations::from_path(project_root.join("testing-migrations"))
+                    .expect("Could not find testing migrations dir");
 
-            println!("Migrations run ..");
-            for res in result {
-                println!("{:?}", res);
-            }
+            // Run migrations in the `migrations` directory
+            test_connection
+                .run_pending_migrations(migrations_dir)
+                .expect("Error running migrations from 'migrations'");
 
-            let pool = Repo::pool(&DATABASE_URL).await?;
+            // Run migrations in the `testing-migrations` directory
+            test_connection
+                .run_pending_migrations(testing_migrations_dir)
+                .expect("Error running migrations from 'testing-migrations'");
+
+            let pool = Repo::pool(&test_db_url).await?;
             Ok(Repo {
                 pool,
                 database_name: Some(test_db_name),
@@ -573,104 +581,50 @@ mod db_tests {
 
         /// Cleans up the test database by dropping it.
         pub async fn cleanup_test_db(&self) -> Result<(), BotDbError> {
-            let db_controller = Repo::new_no_tls().await.unwrap();
-            let connection = db_controller.get_connection().get().await.unwrap();
+            drop(self.get_connection().get().await?);
+            let admin_repo = Repo::new_no_tls().await?;
+            let connection = admin_repo.get_connection().get().await.unwrap();
+
+            let db_name = &self.database_name.clone().unwrap();
+
+            // Terminate all active connections to the target database
+            let terminate_connections_query = format!(
+                "SELECT pg_terminate_backend(pg_stat_activity.pid) \
+         FROM pg_stat_activity \
+         WHERE pg_stat_activity.datname = '{}' \
+         AND pid <> pg_backend_pid();",
+                db_name
+            );
 
             connection
-                .execute(
-                    "DROP DATABASE ($1)",
-                    &[&self.database_name.clone().unwrap()],
-                )
+                .execute(&terminate_connections_query, &[])
                 .await?;
-            Ok(())
-        }
+            // Dynamically format the query to include the database name directly
+            let drop_db_query = format!("DROP DATABASE IF EXISTS {}", db_name);
 
-        pub async fn populate_database(&self) -> Result<(), BotDbError> {
-            let connection = self.get_connection().get().await?;
-
-            // Insert 3 test users into the `chats` table using connection.execute
-            // Insert chats if not exists, conflict on `id`
-            connection
-                .execute(
-                    "INSERT INTO chats (id, user_id, username, language_code, subscribed_vehicles)
-    VALUES ($1, $2, $3, $4, $5)
-    ON CONFLICT (id) DO NOTHING",
-                    &[
-                        &1_i64,
-                        &123456_u64.to_le_bytes().to_vec(),
-                        &"user1",
-                        &Some("en".to_string()),
-                        &"ABC123,DEF456,",
-                    ],
-                )
-                .await?;
-
-            connection
-                .execute(
-                    "INSERT INTO chats (id, user_id, username, language_code, subscribed_vehicles)
-    VALUES ($1, $2, $3, $4, $5)
-    ON CONFLICT (id) DO NOTHING",
-                    &[
-                        &2_i64,
-                        &234567_u64.to_le_bytes().to_vec(),
-                        &"user2",
-                        &Some("fr".to_string()),
-                        &"DEF456,",
-                    ],
-                )
-                .await?;
-
-            connection
-                .execute(
-                    "INSERT INTO chats (id, user_id, username, language_code)
-    VALUES ($1, $2, $3, $4)
-    ON CONFLICT (id) DO NOTHING",
-                    &[
-                        &3_i64,
-                        &345678_u64.to_le_bytes().to_vec(),
-                        &"user3",
-                        &Some("es".to_string()),
-                    ],
-                )
-                .await?;
-
-            // Insert vehicles if not exists, conflict on `plate`
-            connection
-                .execute(
-                    "INSERT INTO vehicles (plate, subscribers_ids)
-    VALUES ($1, $2)
-    ON CONFLICT (plate) DO NOTHING",
-                    &[&"ABC123", &"1,"],
-                )
-                .await?;
-
-            connection
-                .execute(
-                    "INSERT INTO vehicles (plate, subscribers_ids)
-    VALUES ($1, $2)
-    ON CONFLICT (plate) DO NOTHING",
-                    &[&"DEF456", &"1,2,"],
-                )
-                .await?;
-
-            connection
-                .execute(
-                    "INSERT INTO vehicles (plate)
-    VALUES ($1)
-    ON CONFLICT (plate) DO NOTHING",
-                    &[&"GHI789"],
-                )
-                .await?;
-
+            connection.execute(&drop_db_query, &[]).await?;
             Ok(())
         }
     }
 
+    #[test]
+    fn test_get_user_id() {
+        let user_1 = 12356_u64;
+        let user_2 = 12388456_u64;
+        let user_3 = 1235996_u64;
+
+        let bytes_1 = user_1.to_le_bytes().to_vec();
+        let bytes_2 = user_2.to_le_bytes().to_vec();
+        let bytes_3 = user_3.to_le_bytes().to_vec();
+
+        println!("{:?}", bytes_1);
+        println!("{:?}", bytes_2);
+        println!("{:?}", bytes_3);
+    }
     #[tokio::test]
     async fn test_modify_state() {
         //Pick a random user of the DB
         let db_controller = Repo::new_for_test().await.unwrap();
-        db_controller.populate_database().await.unwrap();
 
         let connection = db_controller.get_connection().get().await.unwrap();
 
@@ -719,7 +673,6 @@ mod db_tests {
     #[tokio::test]
     async fn test_subscribe_to_vehicle() {
         let db_controller = Repo::new_for_test().await.unwrap();
-        db_controller.populate_database().await.unwrap();
 
         let testing_plate = "GHI789";
         let testing_chat = 3;
@@ -762,7 +715,7 @@ mod db_tests {
     #[tokio::test]
     async fn list_my_vehicles() {
         let db_controller = Repo::new_for_test().await.unwrap();
-        db_controller.populate_database().await.unwrap();
+
         let _connection = db_controller.get_connection().get().await.unwrap();
 
         let expected_subscriptions = vec![
@@ -796,7 +749,7 @@ mod db_tests {
     #[tokio::test]
     async fn test_modify_found_at_vehicle() {
         let db_controller = Repo::new_for_test().await.unwrap();
-        db_controller.populate_database().await.unwrap();
+
         let connection = db_controller.get_connection().get().await.unwrap();
         let test_datetime = random_datetime();
         // Modify the active state of a vehicle
@@ -824,7 +777,7 @@ mod db_tests {
     #[tokio::test]
     async fn test_modify_active_chat() {
         let db_controller = Repo::new_for_test().await.unwrap();
-        db_controller.populate_database().await.unwrap();
+
         let connection = db_controller.get_connection().get().await.unwrap();
 
         // Modify the active state of a chat
@@ -864,7 +817,7 @@ mod db_tests {
     #[tokio::test]
     async fn test_get_active_subscriptions_from_vehicle() {
         let db_controller = Repo::new_for_test().await.unwrap();
-        db_controller.populate_database().await.unwrap();
+
         let connection = db_controller.get_connection().get().await.unwrap();
 
         // Setup a test vehicle with specific subscribers, some active and some inactive
@@ -915,7 +868,6 @@ mod db_tests {
     #[tokio::test]
     async fn test_insert_vehicle() {
         let db_controller = Repo::new_for_test().await.unwrap();
-        db_controller.populate_database().await.unwrap();
 
         let test_vehicle = Vehicle {
             plate: "TEST123".to_string(),
@@ -937,7 +889,7 @@ mod db_tests {
     #[tokio::test]
     async fn test_insert_vehicle_by_plate() {
         let db_controller = Repo::new_for_test().await.unwrap();
-        db_controller.populate_database().await.unwrap();
+
         let plate = "PLATE123";
 
         match db_controller.insert_vehicle_plate(plate).await {
