@@ -495,6 +495,7 @@ impl Repo {
 #[cfg(test)]
 mod db_tests {
     use chrono::{Duration, Timelike};
+    use fang::{AsyncQueue, FangError};
     use rand::Rng;
 
     use std::ops::Not;
@@ -532,7 +533,7 @@ mod db_tests {
     impl Repo {
         #[cfg(test)]
         /// Sets up a new, unique test database for each test, applies migrations, and returns a `Repo` instance.
-        pub async fn new_for_test() -> Result<Self, BotDbError> {
+        pub async fn new_for_test(db_name: &str) -> Result<Self, BotDbError> {
             // Load environment variables from `.env`
 
             use diesel::{Connection, PgConnection, RunQueryDsl};
@@ -540,7 +541,7 @@ mod db_tests {
             dotenvy::dotenv().ok();
 
             // Generate a unique test database name
-            let test_db_name = format!("test_db_{}", rand::random::<u32>());
+            let test_db_name = format!("test_db_{}_{}", db_name, rand::random::<u32>());
 
             let mut connection = PgConnection::establish(&DATABASE_URL)
                 .unwrap_or_else(|_| panic!("Error connecting to {:?}", *DATABASE_URL));
@@ -585,7 +586,10 @@ mod db_tests {
             let admin_repo = Repo::new_no_tls().await?;
             let connection = admin_repo.get_connection().get().await.unwrap();
 
-            let db_name = &self.database_name.clone().unwrap();
+            let db_name = match self.database_name.clone() {
+                Some(name) => name,
+                None => return Ok(()), // Return Ok(()) if the value is None
+            };
 
             // Terminate all active connections to the target database
             let terminate_connections_query = format!(
@@ -604,6 +608,25 @@ mod db_tests {
 
             connection.execute(&drop_db_query, &[]).await?;
             Ok(())
+        }
+
+        pub async fn create_testing_queue(
+            &self,
+            use_main: bool,
+        ) -> Result<AsyncQueue<NoTls>, FangError> {
+            use crate::DATABASE_URL;
+
+            let url = if use_main {
+                DATABASE_URL.to_string()
+            } else {
+                construct_test_db_url(&DATABASE_URL, &self.database_name.clone().unwrap())
+            };
+
+            let mut queue: AsyncQueue<NoTls> =
+                AsyncQueue::builder().uri(url).max_pool_size(5_u32).build();
+
+            queue.connect(NoTls).await.unwrap();
+            Ok(queue)
         }
     }
 
@@ -624,7 +647,7 @@ mod db_tests {
     #[tokio::test]
     async fn test_modify_state() {
         //Pick a random user of the DB
-        let db_controller = Repo::new_for_test().await.unwrap();
+        let db_controller = Repo::new_for_test("test_modify_state").await.unwrap();
 
         let connection = db_controller.get_connection().get().await.unwrap();
 
@@ -668,11 +691,14 @@ mod db_tests {
 
         let n = db_controller.delete_chat(&999).await.unwrap();
         assert_eq!(n, 1_u64);
+        db_controller.cleanup_test_db().await.unwrap();
     }
 
     #[tokio::test]
     async fn test_subscribe_to_vehicle() {
-        let db_controller = Repo::new_for_test().await.unwrap();
+        let db_controller = Repo::new_for_test("test_subscribe_to_vehicle")
+            .await
+            .unwrap();
 
         let testing_plate = "GHI789";
         let testing_chat = 3;
@@ -714,7 +740,7 @@ mod db_tests {
 
     #[tokio::test]
     async fn list_my_vehicles() {
-        let db_controller = Repo::new_for_test().await.unwrap();
+        let db_controller = Repo::new_for_test("list_my_vehicles").await.unwrap();
 
         let _connection = db_controller.get_connection().get().await.unwrap();
 
@@ -748,7 +774,9 @@ mod db_tests {
     /// Test for modifying the active state of a vehicle
     #[tokio::test]
     async fn test_modify_found_at_vehicle() {
-        let db_controller = Repo::new_for_test().await.unwrap();
+        let db_controller = Repo::new_for_test("test_modify_found_at_vehicle")
+            .await
+            .unwrap();
 
         let connection = db_controller.get_connection().get().await.unwrap();
         let test_datetime = random_datetime();
@@ -776,7 +804,7 @@ mod db_tests {
     /// Test for modifying the active state of a chat
     #[tokio::test]
     async fn test_modify_active_chat() {
-        let db_controller = Repo::new_for_test().await.unwrap();
+        let db_controller = Repo::new_for_test("test_modify_active_chat").await.unwrap();
 
         let connection = db_controller.get_connection().get().await.unwrap();
 
@@ -816,7 +844,9 @@ mod db_tests {
 
     #[tokio::test]
     async fn test_get_active_subscriptions_from_vehicle() {
-        let db_controller = Repo::new_for_test().await.unwrap();
+        let db_controller = Repo::new_for_test("test_get_active_subscriptions_from_vehicle")
+            .await
+            .unwrap();
 
         let connection = db_controller.get_connection().get().await.unwrap();
 
@@ -867,7 +897,7 @@ mod db_tests {
 
     #[tokio::test]
     async fn test_insert_vehicle() {
-        let db_controller = Repo::new_for_test().await.unwrap();
+        let db_controller = Repo::new_for_test("test_insert_vehicle").await.unwrap();
 
         let test_vehicle = Vehicle {
             plate: "TEST123".to_string(),
@@ -888,7 +918,9 @@ mod db_tests {
 
     #[tokio::test]
     async fn test_insert_vehicle_by_plate() {
-        let db_controller = Repo::new_for_test().await.unwrap();
+        let db_controller = Repo::new_for_test("test_insert_vehicle_by_plate")
+            .await
+            .unwrap();
 
         let plate = "PLATE123";
 

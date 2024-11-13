@@ -87,27 +87,13 @@ impl AsyncRunnable for FetchTask {
 #[cfg(test)]
 mod fetch_task_tests {
 
-    use bb8_postgres::tokio_postgres::NoTls;
     use chrono::Utc;
-    use fang::AsyncQueue;
 
     use super::*;
 
-    async fn create_testing_queue() -> Result<AsyncQueue<NoTls>, FangError> {
-        use crate::DATABASE_URL;
-
-        let mut queue: AsyncQueue<NoTls> = AsyncQueue::builder()
-            .uri(DATABASE_URL.to_string())
-            .max_pool_size(5_u32)
-            .build();
-
-        queue.connect(NoTls).await.unwrap();
-        Ok(queue)
-    }
-
     #[tokio::test]
     async fn test_fetch_task() {
-        let db_controller = Repo::new_for_test().await.unwrap();
+        let db_controller = Repo::repo().await.unwrap();
         let connection = db_controller.get_connection().get().await.unwrap();
 
         let testing_plate = String::from("MATRICULA1");
@@ -160,7 +146,7 @@ ON CONFLICT (plate) DO NOTHING",
 
         //TODO: Add a vehicle as not found and make sure it's already found (API)
 
-        let mut fake_queue = create_testing_queue().await.unwrap();
+        let mut fake_queue = db_controller.create_testing_queue(true).await.unwrap();
         let tasks = vec![
             FetchTask::builder().plate(testing_plate).build(),
             FetchTask::builder().plate(testing_plate_found).build(),
@@ -171,7 +157,7 @@ ON CONFLICT (plate) DO NOTHING",
                 Some(err) if err.description.contains("chat not found") => (), // Ignore invalid chat_id
                 Some(err) => {
                     eprintln!("{:#?}", err);
-                    db_controller.cleanup_test_db().await.unwrap();
+                    //db_controller.cleanup_test_db().await.unwrap();
                     unreachable!()
                 }
                 None => (),
