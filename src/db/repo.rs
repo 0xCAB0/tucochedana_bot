@@ -172,15 +172,14 @@ impl Repo {
         } else {
             let connection = self.pool.get().await?;
 
-            let chat_ids_str = chat_ids.unwrap();
-            let mut active_chats: Vec<Row> = connection
+            let mut chat_ids_str = chat_ids.unwrap();
+            chat_ids_str.pop(); // Removes the last ","
+            chat_ids_str.retain(|c| !c.is_whitespace());
+
+            let active_chats: Vec<Row> = connection
                 .query(FILTER_ACTIVE_CHATS, &[&chat_ids_str])
                 .await?;
-            active_chats
-                .pop()
-                .into_iter()
-                .map(|row| row.into())
-                .collect()
+            active_chats.into_iter().map(|row| row.into()).collect()
         };
 
         Ok(result)
@@ -852,7 +851,7 @@ mod db_tests {
 
         // Setup a test vehicle with specific subscribers, some active and some inactive
         let vehicle_plate = "XYZ987";
-        let subscribers_ids = "1,2,3,4"; // Assuming IDs 1, 2, 3, 4 are in the chats table
+        let subscribers_ids = "1,2,3,4,"; // Assuming IDs 1, 2, 3, 4 are in the chats table
 
         // Insert the vehicle with subscribers
         connection
