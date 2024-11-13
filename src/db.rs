@@ -1,6 +1,7 @@
 use bb8_postgres::bb8::RunError;
 use fang::FangError;
 use fang::ToFangError;
+
 use std::fmt::Debug;
 use thiserror::Error;
 
