@@ -396,7 +396,7 @@ impl Repo {
             .execute(CONCANT_CHAT_TO_SUBSCRIBERS, &[&chat_id.to_string(), &plate])
             .await?;
         let n2 = transaction
-            .execute(CONCAT_VEHICLE_TO_SUBSCRIPTIONS, &[&chat_id, &plate])
+            .execute(CONCAT_VEHICLE_TO_SUBSCRIPTIONS, &[&plate, &chat_id])
             .await?;
 
         if n1 == n2 {
@@ -531,8 +531,8 @@ mod db_tests {
         format!("{}{}", &base_url[..pos + 1], test_db_name)
     }
 
+    #[cfg(test)]
     impl Repo {
-        #[cfg(test)]
         /// Sets up a new, unique test database for each test, applies migrations, and returns a `Repo` instance.
         pub async fn new_for_test(db_name: &str) -> Result<Self, BotDbError> {
             // Load environment variables from `.env`
@@ -542,7 +542,7 @@ mod db_tests {
             dotenvy::dotenv().ok();
 
             // Generate a unique test database name
-            let test_db_name = format!("test_db_{}_{}", db_name, rand::random::<u32>());
+            let test_db_name = format!("test_db_{}_{}", db_name, Utc::now().timestamp());
 
             let mut connection = PgConnection::establish(&DATABASE_URL)
                 .unwrap_or_else(|_| panic!("Error connecting to {:?}", *DATABASE_URL));
@@ -696,21 +696,114 @@ mod db_tests {
     }
 
     #[tokio::test]
-    async fn test_subscribe_to_vehicle() {
-        let db_controller = Repo::new_for_test("test_subscribe_to_vehicle")
-            .await
-            .unwrap();
-
+    async fn test_subscribe_to_first_empty_vehicle() {
         let testing_plate = "GHI789";
         let testing_chat = 3;
 
+        let db_controller = Repo::new_for_test("test_subscribe_to_first_empty_vehicle")
+            .await
+            .unwrap();
+
+        let (chat, vehicle) =
+            test_subscribe_to_vehicle(testing_plate, testing_chat, &db_controller)
+                .await
+                .unwrap();
+
+        let subscribers: Vec<i64> = vehicle
+            .subscribers_ids
+            .unwrap()
+            .split(',')
+            .filter_map(|x| {
+                match x.parse::<i64>() {
+                    Ok(value) => Some(value), // Keep successfully parsed values
+                    Err(e) => {
+                        println!("Failed to parse '{}': {}", x, e); // Log the error
+                        None // Skip the value if parsing fails
+                    }
+                }
+            })
+            .collect();
+
+        let subscriptions: Vec<String> = chat
+            .subscribed_vehicles
+            .unwrap()
+            .split(',')
+            .map(|x| x.to_string())
+            .collect();
+
+        assert!(
+            subscribers.len() == 1,
+            "subscribers -> {}",
+            subscribers.len()
+        );
+        assert!(
+            subscriptions.len() == 1,
+            "subscriptions -> {}",
+            subscriptions.len()
+        );
+
+        db_controller.cleanup_test_db().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_subscribe_to_first_vehicle() {
+        let testing_plate = "DEF456";
+        let testing_chat = 3;
+
+        let db_controller = Repo::new_for_test("test_subscribe_to_first_vehicle")
+            .await
+            .unwrap();
+
+        let (chat, vehicle) =
+            test_subscribe_to_vehicle(testing_plate, testing_chat, &db_controller)
+                .await
+                .unwrap();
+
+        let subscribers: Vec<i64> = vehicle
+            .subscribers_ids
+            .unwrap()
+            .split(',')
+            .filter_map(|x| {
+                match x.parse::<i64>() {
+                    Ok(value) => Some(value), // Keep successfully parsed values
+                    Err(_) => None,           // Skip the value if parsing fails
+                }
+            })
+            .collect();
+
+        let subscriptions: Vec<String> = chat
+            .subscribed_vehicles
+            .unwrap()
+            .split(',')
+            .map(|x| x.to_string())
+            .collect();
+
+        assert!(
+            subscribers.len() == 3,
+            "subscribers -> {}",
+            subscribers.len()
+        );
+        assert!(
+            subscriptions.len() == 1,
+            "subscriptions -> {}",
+            subscriptions.len()
+        );
+
+        db_controller.cleanup_test_db().await.unwrap();
+    }
+
+    async fn test_subscribe_to_vehicle(
+        testing_plate: &str,
+        testing_chat: i64,
+        db_controller: &Repo,
+    ) -> Result<(Chat, Vehicle), BotDbError> {
         // Añadir a uno vacío
         db_controller
             .create_subscription(testing_plate, testing_chat)
             .await
             .unwrap();
 
-        let chat = db_controller.get_chat(&3).await.unwrap();
+        let chat = db_controller.get_chat(&testing_chat).await.unwrap();
 
         assert!(chat
             .subscribed_vehicles
@@ -732,11 +825,77 @@ mod db_tests {
             .unwrap()
             .split(',')
             .any(|subscriber| subscriber == testing_chat.to_string()));
-        // Añadir a uno con contenido
 
-        db_controller.cleanup_test_db().await.unwrap();
+        println!("CHAT -> {:?}", chat);
+        println!("VEHICLE -> {:?}", vehicle);
+        Ok((chat, vehicle))
 
         //db_controller.subscribe_chat_id_to_vehicle(plate, chat_id)
+    }
+
+    #[tokio::test]
+    async fn test_end_subscription() {
+        // Initialize a test database and repository instance
+        let db_controller = Repo::new_for_test("test_end_subscription").await.unwrap();
+
+        let testing_plate = "GHI789";
+        let testing_chat = 3;
+
+        // Step 1: Create a subscription for setup
+        db_controller
+            .create_subscription(testing_plate, testing_chat)
+            .await
+            .expect("Failed to create initial subscription");
+
+        // Verify that the chat is subscribed to the vehicle
+        let chat = db_controller.get_chat(&testing_chat).await.unwrap();
+        assert!(chat
+            .subscribed_vehicles
+            .clone()
+            .is_some_and(|t| t.contains(testing_plate)));
+
+        let vehicle = db_controller.get_vehicle(testing_plate).await.unwrap();
+        assert!(vehicle
+            .subscribers_ids
+            .clone()
+            .unwrap_or_default()
+            .split(',')
+            .any(|id| id == testing_chat.to_string()));
+
+        // Step 2: Call `end_subscription` to remove the subscription
+        let (n_subscribers, n_subscriptions) = db_controller
+            .end_subscription(testing_plate, testing_chat)
+            .await
+            .expect("Failed to end subscription");
+
+        // Verify the expected number of modifications
+        assert_eq!(
+            n_subscribers, 1,
+            "Expected one subscriber to be removed from vehicle"
+        );
+        assert_eq!(
+            n_subscriptions, 1,
+            "Expected one subscription to be removed from chat"
+        );
+
+        // Step 3: Verify that the chat is no longer subscribed to the vehicle
+        let updated_chat = db_controller.get_chat(&testing_chat).await.unwrap();
+        assert!(updated_chat
+            .subscribed_vehicles
+            .clone()
+            .is_some_and(|t| !t.contains(testing_plate)));
+
+        // Verify that the vehicle no longer includes the chat in its subscribers
+        let updated_vehicle = db_controller.get_vehicle(testing_plate).await.unwrap();
+        assert!(!updated_vehicle
+            .subscribers_ids
+            .clone()
+            .unwrap_or_default()
+            .split(',')
+            .any(|id| id == testing_chat.to_string()));
+
+        // Clean up the test database
+        db_controller.cleanup_test_db().await.unwrap();
     }
 
     #[tokio::test]
