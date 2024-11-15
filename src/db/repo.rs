@@ -496,6 +496,8 @@ impl Repo {
 #[cfg(test)]
 mod db_tests {
     use chrono::{Duration, Timelike};
+    use diesel::{Connection, PgConnection, RunQueryDsl};
+    use diesel_migrations::{FileBasedMigrations, MigrationHarness};
     use fang::{AsyncQueue, FangError};
     use rand::Rng;
 
@@ -531,18 +533,16 @@ mod db_tests {
         format!("{}{}", &base_url[..pos + 1], test_db_name)
     }
 
-    #[cfg(test)]
     impl Repo {
+        #[cfg(test)]
         /// Sets up a new, unique test database for each test, applies migrations, and returns a `Repo` instance.
         pub async fn new_for_test(db_name: &str) -> Result<Self, BotDbError> {
             // Load environment variables from `.env`
 
-            use diesel::{Connection, PgConnection, RunQueryDsl};
-            use diesel_migrations::{FileBasedMigrations, MigrationHarness};
             dotenvy::dotenv().ok();
 
             // Generate a unique test database name
-            let test_db_name = format!("test_db_{}_{}", db_name, Utc::now().timestamp());
+            let test_db_name = format!("test_db_{}_{}", db_name, rand::random::<u32>());
 
             let mut connection = PgConnection::establish(&DATABASE_URL)
                 .unwrap_or_else(|_| panic!("Error connecting to {:?}", *DATABASE_URL));
@@ -829,8 +829,6 @@ mod db_tests {
         println!("CHAT -> {:?}", chat);
         println!("VEHICLE -> {:?}", vehicle);
         Ok((chat, vehicle))
-
-        //db_controller.subscribe_chat_id_to_vehicle(plate, chat_id)
     }
 
     #[tokio::test]
