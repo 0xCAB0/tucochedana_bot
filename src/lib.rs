@@ -59,10 +59,6 @@ pub mod update_handler {
     pub mod process_update;
 }
 
-/// Common methods for all testing modules
-#[cfg(test)]
-pub mod test;
-
 pub mod tasks {
     pub mod fetch;
 }

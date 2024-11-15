@@ -90,13 +90,10 @@ mod fetch_task_tests {
     use chrono::Utc;
 
     use super::*;
-    use crate::test::*;
 
     #[tokio::test]
     async fn test_fetch_task() {
-        setup().await;
-
-        let db_controller = Repo::new_no_tls().await.unwrap();
+        let db_controller = Repo::repo().await.unwrap();
         let connection = db_controller.get_connection().get().await.unwrap();
 
         let testing_plate = String::from("MATRICULA1");
@@ -149,7 +146,7 @@ ON CONFLICT (plate) DO NOTHING",
 
         //TODO: Add a vehicle as not found and make sure it's already found (API)
 
-        let mut fake_queue = create_mock_queue().await.unwrap();
+        let mut fake_queue = db_controller.create_testing_queue(true).await.unwrap();
         let tasks = vec![
             FetchTask::builder().plate(testing_plate).build(),
             FetchTask::builder().plate(testing_plate_found).build(),
@@ -160,10 +157,12 @@ ON CONFLICT (plate) DO NOTHING",
                 Some(err) if err.description.contains("chat not found") => (), // Ignore invalid chat_id
                 Some(err) => {
                     eprintln!("{:#?}", err);
+                    //db_controller.cleanup_test_db().await.unwrap();
                     unreachable!()
                 }
                 None => (),
             }
         }
+        db_controller.cleanup_test_db().await.unwrap();
     }
 }

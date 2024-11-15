@@ -9,7 +9,10 @@ db:
 
 
 diesel:
-	DATABASE_URL=postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@localhost/$(POSTGRES_DB) diesel migration run
+	diesel migration run
+
+diesel-test: diesel
+	diesel migration run --migration-dir testing-migrations
 stop:
 	docker kill postgres
 

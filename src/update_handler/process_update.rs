@@ -249,7 +249,7 @@ impl UpdateProcessor {
 
         subscriptions.pop();
 
-        for plate in subscriptions.split(',') {
+        for plate in subscriptions.split(',').map(str::trim) {
             if repo.get_n_subscribers_by_plate(plate).await? == 1 {
                 repo.delete_tasks_by_plate(plate).await?;
             }
