@@ -494,6 +494,8 @@ impl Repo {
 #[cfg(test)]
 mod db_tests {
     use chrono::{Duration, Timelike};
+    use diesel::{Connection, PgConnection, RunQueryDsl};
+    use diesel_migrations::{FileBasedMigrations, MigrationHarness};
     use fang::{AsyncQueue, FangError};
     use rand::Rng;
 
@@ -535,8 +537,6 @@ mod db_tests {
         pub async fn new_for_test(db_name: &str) -> Result<Self, BotDbError> {
             // Load environment variables from `.env`
 
-            use diesel::{Connection, PgConnection, RunQueryDsl};
-            use diesel_migrations::{FileBasedMigrations, MigrationHarness};
             dotenvy::dotenv().ok();
 
             // Generate a unique test database name
