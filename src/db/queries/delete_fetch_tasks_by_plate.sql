@@ -1,4 +1,4 @@
 DELETE FROM fang_tasks
 WHERE
     metadata ->> 'plate' = $1
-    AND (metadata ->> 'type') = 'scheduled_fetch'
+    AND (metadata ->> 'type') = 'FetchTask'
