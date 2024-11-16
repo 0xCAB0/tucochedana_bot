@@ -111,7 +111,6 @@ impl Repo {
         let row = match connection.query_one(GET_CHAT, &[chat_id]).await {
             Ok(r) => r,
             Err(err) => {
-                log::error!("get_chat -> {}", err);
                 return Err(BotDbError::PgError(err));
             }
         };
@@ -159,37 +158,6 @@ impl Repo {
         let row = connection.query_one(GET_VEHICLE, &[&plate]).await?;
 
         Ok(row.into())
-    }
-
-    pub async fn get_active_subscriptions_from_vehicle(
-        &self,
-        plate: &str,
-    ) -> Result<Vec<Chat>, BotDbError> {
-        let chat_ids = self.get_vehicle(plate).await?.subscribers_ids;
-
-        let result = if chat_ids.is_none() {
-            vec![]
-        } else {
-            let connection = self.pool.get().await?;
-
-            let mut chat_ids_str = chat_ids.unwrap();
-            chat_ids_str.pop(); // Removes the last ","
-            chat_ids_str.retain(|c| !c.is_whitespace());
-
-            let active_chats: Vec<Row> = connection
-                .query(FILTER_ACTIVE_CHATS, &[&chat_ids_str])
-                .await?;
-            active_chats.into_iter().map(|row| row.into()).collect()
-        };
-
-        Ok(result)
-    }
-
-    pub async fn get_subscriptions_from_vehicle_as_string(
-        &self,
-        plate: &str,
-    ) -> Result<Option<String>, BotDbError> {
-        Ok(self.get_vehicle(plate).await?.subscribers_ids)
     }
 
     async fn check_user_exists(&self, chat_id: &i64) -> Result<bool, BotDbError> {
@@ -346,6 +314,36 @@ impl Repo {
 
     //Subscriptions
 
+    pub async fn get_active_subscriptions_from_vehicle(
+        &self,
+        plate: &str,
+    ) -> Result<Vec<Chat>, BotDbError> {
+        let chat_ids = self.get_vehicle(plate).await?.subscribers_ids;
+
+        if chat_ids.is_none() {
+            return Ok(vec![]);
+        }
+
+        let connection = self.pool.get().await?;
+
+        let mut chat_ids_str = chat_ids.unwrap();
+        chat_ids_str.pop(); // Removes the last ","
+        chat_ids_str.retain(|c| !c.is_whitespace());
+
+        let active_chats: Vec<Row> = connection
+            .query(FILTER_ACTIVE_CHATS, &[&chat_ids_str])
+            .await?;
+
+        Ok(active_chats.into_iter().map(|row| row.into()).collect())
+    }
+
+    pub async fn get_subscriptions_from_vehicle_as_string(
+        &self,
+        plate: &str,
+    ) -> Result<Option<String>, BotDbError> {
+        Ok(self.get_vehicle(plate).await?.subscribers_ids)
+    }
+
     pub async fn get_n_subscribers_by_plate(&self, plate: &str) -> Result<u64, BotDbError> {
         let connection = self.pool.get().await?;
         let n = connection
@@ -422,10 +420,10 @@ impl Repo {
         let current_subscriptions = self.get_chat(&chat_id).await?.subscribed_vehicles;
 
         let (n_subscribers, updated_subscribers) =
-            Self::pop_member_from_subs_string(current_subscribers, chat_id.to_string());
+            Self::pop_member_from_subs_string(current_subscribers.clone(), chat_id.to_string());
 
         let (n_subscriptions, updated_subscriptions) =
-            Self::pop_member_from_subs_string(current_subscriptions, plate.to_string());
+            Self::pop_member_from_subs_string(current_subscriptions.clone(), plate.to_string());
 
         if n_subscribers == 0 || n_subscriptions == 0 {
             let reason = if n_subscribers == 0 {
@@ -469,18 +467,18 @@ impl Repo {
     fn pop_member_from_subs_string(
         subscription_string: Option<String>,
         member: String,
-    ) -> (u64, String) {
+    ) -> (u64, Option<String>) {
         match subscription_string {
             Some(subscribers) => {
                 let valid_items: Vec<_> = subscribers
                     .split(',')
                     .map(str::trim)
-                    .filter(|&x| x == member)
+                    .filter(|&x| x != member)
                     .collect();
 
-                (valid_items.len() as u64, valid_items.join(","))
+                (valid_items.len() as u64, Some(valid_items.join(",")))
             }
-            None => (0, String::new()),
+            None => (0, None),
         }
     }
 
@@ -716,29 +714,27 @@ mod db_tests {
             .filter_map(|x| {
                 match x.parse::<i64>() {
                     Ok(value) => Some(value), // Keep successfully parsed values
-                    Err(e) => {
-                        println!("Failed to parse '{}': {}", x, e); // Log the error
+                    Err(_) => {
                         None // Skip the value if parsing fails
                     }
                 }
             })
             .collect();
 
-        let subscriptions: Vec<String> = chat
-            .subscribed_vehicles
-            .unwrap()
-            .split(',')
-            .map(|x| x.to_string())
-            .collect();
+        let mut subscriptions = chat.subscribed_vehicles.unwrap();
+
+        subscriptions.pop();
+
+        let subscriptions: Vec<String> = subscriptions.split(',').map(|x| x.to_string()).collect();
 
         assert!(
             subscribers.len() == 1,
-            "subscribers -> {}",
+            "subscribers -> {} vs 1",
             subscribers.len()
         );
         assert!(
             subscriptions.len() == 1,
-            "subscriptions -> {}",
+            "subscriptions -> {} vs 1",
             subscriptions.len()
         );
 
@@ -771,21 +767,20 @@ mod db_tests {
             })
             .collect();
 
-        let subscriptions: Vec<String> = chat
-            .subscribed_vehicles
-            .unwrap()
-            .split(',')
-            .map(|x| x.to_string())
-            .collect();
+        let mut subscriptions = chat.subscribed_vehicles.unwrap();
+
+        subscriptions.pop();
+
+        let subscriptions: Vec<String> = subscriptions.split(',').map(|x| x.to_string()).collect();
 
         assert!(
             subscribers.len() == 3,
-            "subscribers -> {}",
+            "subscribers -> {} vs 3",
             subscribers.len()
         );
         assert!(
             subscriptions.len() == 1,
-            "subscriptions -> {}",
+            "subscriptions -> {} vs 1",
             subscriptions.len()
         );
 
@@ -850,7 +845,7 @@ mod db_tests {
         assert!(chat
             .subscribed_vehicles
             .clone()
-            .is_some_and(|t| t.contains(testing_plate)));
+            .is_some_and(|t| t.split(',').any(|plate| plate == testing_plate)));
 
         let vehicle = db_controller.get_vehicle(testing_plate).await.unwrap();
         assert!(vehicle
@@ -878,19 +873,27 @@ mod db_tests {
 
         // Step 3: Verify that the chat is no longer subscribed to the vehicle
         let updated_chat = db_controller.get_chat(&testing_chat).await.unwrap();
-        assert!(updated_chat
-            .subscribed_vehicles
-            .clone()
-            .is_some_and(|t| !t.contains(testing_plate)));
+        assert!(
+            updated_chat
+                .subscribed_vehicles
+                .clone()
+                .is_some_and(|t| !t.contains(testing_plate)),
+            "{:?}",
+            updated_chat.subscribed_vehicles
+        );
 
         // Verify that the vehicle no longer includes the chat in its subscribers
         let updated_vehicle = db_controller.get_vehicle(testing_plate).await.unwrap();
-        assert!(!updated_vehicle
-            .subscribers_ids
-            .clone()
-            .unwrap_or_default()
-            .split(',')
-            .any(|id| id == testing_chat.to_string()));
+        assert!(
+            !updated_vehicle
+                .subscribers_ids
+                .clone()
+                .unwrap_or_default()
+                .split(',')
+                .any(|id| id == testing_chat.to_string()),
+            "{:?}",
+            updated_vehicle.subscribers_ids
+        );
 
         // Clean up the test database
         db_controller.cleanup_test_db().await.unwrap();
