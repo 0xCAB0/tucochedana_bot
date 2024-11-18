@@ -27,7 +27,7 @@ INSERT INTO
     )
 VALUES (
         2,
-        E'\\x6808bd0000000000'::bytea,
+        E'\\x5EA6245100000000',
         'user2',
         'fr',
         'DEF456,'

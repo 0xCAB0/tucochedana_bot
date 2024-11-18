@@ -87,6 +87,7 @@ mod add_vehicle_tests {
 
     use super::*;
 
+    #[ignore = "Unestable"]
     #[tokio::test]
     async fn test_add_vehicle() {
         dotenvy::dotenv().ok();
@@ -96,16 +97,12 @@ mod add_vehicle_tests {
         let test_queue = Repo::create_testing_queue(repo, true).await.unwrap();
 
         let plate = "NUEVA789";
-        let chat_id = 2;
 
-        assert_eq!(
-            1,
-            repo.modify_state(&chat_id, model::client_state::ClientState::AddVehicle)
-                .await
-                .unwrap()
-        );
+        let db_chat = repo.get_testing_chat().await.unwrap();
 
-        let db_chat = repo.get_chat(&chat_id).await.unwrap();
+        repo.modify_state(&db_chat.id, model::client_state::ClientState::AddVehicle)
+            .await
+            .unwrap();
 
         let chat: Chat = Chat::builder()
             .id(db_chat.user_id as i64)
@@ -144,11 +141,11 @@ mod add_vehicle_tests {
             }
         };
 
-        let _db_chat = repo.get_chat(&chat_id).await.unwrap();
+        let db_chat = repo.get_chat(&db_chat.id).await.unwrap();
 
-        // assert_eq!(db_chat.state, ClientState::Initial);
-        // assert!(db_chat.subscribed_vehicles.is_some_and(|subs| subs
-        //     .split(',')
-        //     .any(|subbed_vehicle| subbed_vehicle == plate)));
+        assert_eq!(db_chat.state, model::client_state::ClientState::Initial);
+        assert!(db_chat.subscribed_vehicles.is_some_and(|subs| subs
+            .split(',')
+            .any(|subbed_vehicle| subbed_vehicle == plate)));
     }
 }

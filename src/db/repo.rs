@@ -119,6 +119,17 @@ impl Repo {
         Ok(row.into())
     }
 
+    #[cfg(test)]
+    pub async fn get_testing_chat(&self) -> Result<Chat, BotDbError> {
+        match self
+            .find_or_create_chat(&i64::MAX, 1361356382_u64, "Quevedo", &None)
+            .await
+        {
+            Ok(result) => Ok(result.0),
+            Err(err) => Err(err),
+        }
+    }
+
     pub async fn get_rows(&self, query: String) -> Result<Vec<Row>, BotDbError> {
         let connection = self.pool.get().await?;
 
@@ -643,13 +654,6 @@ pub mod db_tests {
         log::info!("{:?}", bytes_1);
         log::info!("{:?}", bytes_2);
         log::info!("{:?}", bytes_3);
-
-        let bytes: &[u8] = b"5EA6245100000000";
-        let mut arr = [0u8; 8];
-        arr.copy_from_slice(bytes);
-        let user_id: u64 = Repo::as_u64_le(&arr);
-
-        log::info!("{}", user_id);
     }
     #[tokio::test]
     async fn test_modify_state() {
