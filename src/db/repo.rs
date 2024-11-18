@@ -41,6 +41,7 @@ const MODIFY_SUBSCRIBED_CHAT: &str = include_str!("queries/modify_subscribed_cha
 const FILTER_ACTIVE_CHATS: &str = include_str!("queries/filter_active_chats.sql");
 const COUNT_SUBSCRIBERS_PLATE: &str = include_str!("queries/count_subscribers_plate.sql");
 
+#[derive(Debug)]
 pub struct Repo {
     pub(crate) pool: Pool<PostgresConnectionManager<NoTls>>,
     #[cfg(test)]
@@ -360,7 +361,7 @@ impl Repo {
         let connection = self.pool.get().await?;
 
         match connection
-            .execute(CONCAT_VEHICLE_TO_SUBSCRIPTIONS, &[&chat_id, &plate])
+            .execute(CONCAT_VEHICLE_TO_SUBSCRIPTIONS, &[&plate, &chat_id])
             .await
         {
             Ok(n) if n > 0 => Ok(()),
@@ -492,7 +493,7 @@ impl Repo {
 }
 
 #[cfg(test)]
-mod db_tests {
+pub mod db_tests {
     use chrono::{Duration, Timelike};
     use diesel::{Connection, PgConnection, RunQueryDsl};
     use diesel_migrations::{FileBasedMigrations, MigrationHarness};
@@ -503,7 +504,7 @@ mod db_tests {
 
     use super::*;
 
-    fn random_datetime() -> DateTime<Utc> {
+    pub fn random_datetime() -> DateTime<Utc> {
         use chrono::Utc;
 
         let now = Utc::now();
@@ -639,9 +640,16 @@ mod db_tests {
         let bytes_2 = user_2.to_le_bytes().to_vec();
         let bytes_3 = user_3.to_le_bytes().to_vec();
 
-        println!("{:?}", bytes_1);
-        println!("{:?}", bytes_2);
-        println!("{:?}", bytes_3);
+        log::info!("{:?}", bytes_1);
+        log::info!("{:?}", bytes_2);
+        log::info!("{:?}", bytes_3);
+
+        let bytes: &[u8] = b"5EA6245100000000";
+        let mut arr = [0u8; 8];
+        arr.copy_from_slice(bytes);
+        let user_id: u64 = Repo::as_u64_le(&arr);
+
+        log::info!("{}", user_id);
     }
     #[tokio::test]
     async fn test_modify_state() {
@@ -821,8 +829,8 @@ mod db_tests {
             .split(',')
             .any(|subscriber| subscriber == testing_chat.to_string()));
 
-        println!("CHAT -> {:?}", chat);
-        println!("VEHICLE -> {:?}", vehicle);
+        log::info!("CHAT -> {:?}", chat);
+        log::info!("VEHICLE -> {:?}", vehicle);
         Ok((chat, vehicle))
     }
 

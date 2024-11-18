@@ -156,7 +156,7 @@ ON CONFLICT (plate) DO NOTHING",
             match task.run(&mut fake_queue).await.err() {
                 Some(err) if err.description.contains("chat not found") => (), // Ignore invalid chat_id
                 Some(err) => {
-                    eprintln!("{:#?}", err);
+                    log::error!("{:#?}", err);
                     //db_controller.cleanup_test_db().await.unwrap();
                     unreachable!()
                 }

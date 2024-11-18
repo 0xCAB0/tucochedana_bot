@@ -28,7 +28,7 @@ pub enum TaskToManage {
 }
 
 /// Telegram's Update event handler
-#[derive(Builder)]
+#[derive(Builder, Debug)]
 pub struct UpdateProcessor {
     pub api: &'static ApiClient,
     pub repo: &'static Repo,
@@ -129,12 +129,12 @@ impl UpdateProcessor {
     pub async fn run(
         update: &Update,
         queue: Arc<Mutex<AsyncQueue<NoTls>>>,
-    ) -> Result<(), BotError> {
+    ) -> Result<UpdateProcessor, BotError> {
         let mut processor = match UpdateProcessor::create(update).await {
             Ok(processor) => processor,
             Err(err) => {
                 log::error!("Failed to initialize the processor {:?}", err);
-                return Ok(());
+                return Err(err);
             }
         };
 
@@ -148,6 +148,7 @@ impl UpdateProcessor {
 
                 if let Err(err) = processor.revert_state().await {
                     log::error!("Failed to revert: {:?}", err);
+                    return Err(err);
                 }
             }
 
@@ -173,7 +174,7 @@ impl UpdateProcessor {
             },
         }
 
-        Ok(())
+        Ok(processor)
     }
 
     async fn process(&mut self) -> Result<TaskToManage, BotError> {
@@ -186,14 +187,15 @@ impl UpdateProcessor {
             ClientState::Initial => self.process_initial().await,
 
             ClientState::AddVehicle => {
-                self.repo
-                    .modify_state(&self.chat.id, ClientState::Initial)
-                    .await?;
-                if let Command::UnknownCommand(_) = self.command {
+                let res = if let Command::UnknownCommand(_) = self.command {
                     self.add_vehicle().await
                 } else {
                     Ok(TaskToManage::NoTask)
-                }
+                };
+                self.repo
+                    .modify_state(&self.chat.id, ClientState::Initial)
+                    .await?;
+                res
             }
         }
     }
@@ -216,7 +218,7 @@ impl UpdateProcessor {
             }
 
             Command::AddVehicleMessage => {
-                self.add_vehicle_prompt().await?;
+                self.add_vehicle_prompt(None).await?;
                 Ok(TaskToManage::NoTask)
             }
 

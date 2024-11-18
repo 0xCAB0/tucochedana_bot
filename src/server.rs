@@ -17,7 +17,13 @@ use crate::{update_handler::process_update::UpdateProcessor, BotError};
 
 pub fn app(queue: AsyncQueue<NoTls>) -> Router {
     Router::new()
-        .route("/", get(|| async { "Hello!" }))
+        .route(
+            "/",
+            get(|| async {
+                log::info!("New visitor");
+                "Hello!"
+            }),
+        )
         .route("/webhook", post(parse_update))
         .with_state(Arc::new(Mutex::new(queue)))
 }
@@ -43,8 +49,6 @@ mod server_tests {
     use axum::body::Body;
     use axum::extract::Request;
     use axum::http::StatusCode;
-    use fang::AsyncQueue;
-    use fang::NoTls;
     use frankenstein::Chat;
     use frankenstein::Message;
     use frankenstein::Update;
@@ -53,24 +57,16 @@ mod server_tests {
     use tower::ServiceExt;
 
     use super::*;
-    use crate::DATABASE_URL;
-
-    async fn init_testing_queue() -> AsyncQueue<NoTls> {
-        let mut queue: AsyncQueue<NoTls> = AsyncQueue::builder()
-            .uri(DATABASE_URL.clone())
-            .max_pool_size(1_u32)
-            .build();
-
-        queue.connect(NoTls).await.unwrap();
-        queue
-    }
+    use crate::db::Repo;
 
     /// Basic example https://core.telegram.org/bots/webhooks#testing-your-bot-with-updates
     #[tokio::test]
     async fn test_webhook_dispatch() {
         dotenvy::dotenv().ok();
 
-        let queue = init_testing_queue().await;
+        let queue = Repo::create_testing_queue(Repo::repo().await.unwrap(), true)
+            .await
+            .unwrap();
         let app = app(queue);
 
         let chat = Chat::builder()
@@ -120,7 +116,9 @@ mod server_tests {
     async fn test_root_handler() {
         dotenvy::dotenv().ok();
 
-        let queue = init_testing_queue().await;
+        let queue = Repo::create_testing_queue(Repo::repo().await.unwrap(), true)
+            .await
+            .unwrap();
         // Initialize the app
         let app = app(queue);
 
