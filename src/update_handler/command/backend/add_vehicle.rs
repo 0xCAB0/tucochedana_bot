@@ -93,7 +93,7 @@ mod add_vehicle_tests {
         pretty_env_logger::init();
 
         let repo = Repo::repo().await.unwrap();
-        let test_queue = Repo::create_testing_queue(&repo, true).await.unwrap();
+        let test_queue = Repo::create_testing_queue(repo, true).await.unwrap();
 
         let plate = "NUEVA789";
         let chat_id = 2;
