@@ -67,13 +67,11 @@ jobs:
           args: diesel_cli --no-default-features --features "postgres"
 
       - name: Setup db
-        env:
-          DATABASE_URL: "postgres://postgres:postgres@localhost/tu-coche-dana-bot"
         run: diesel migration run --migration-dir testing-migrations
 
       - name: Run tests
         env:
-          DATABASE_URL: "postgres://postgres:postgres@localhost/tu-coche-dana-bot"
+          DATABASE_URL: "postgres://postgres:postgres@postgres/tu-coche-dana-bot"
           API_URL: "https://absolutly_fake_site.fake/"
           BOT_NAME: "testing_bot"
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
