@@ -1,4 +1,4 @@
-use frankenstein::{InlineKeyboardButton, InlineKeyboardMarkup};
+use frankenstein::{InlineKeyboardButton, InlineKeyboardMarkup, ParseMode};
 
 use crate::{db::model::client_state::ClientState, BotError, BOT_NAME};
 use std::str::{FromStr, SplitAsciiWhitespace};
@@ -160,6 +160,7 @@ impl UpdateProcessor {
         &self,
         text: String,
         rows: InlineKeyboardMarkup,
+        parse_mode: ParseMode,
     ) -> Result<(), BotError> {
         let chunks: Vec<&str> = text
             .as_bytes()
@@ -170,7 +171,7 @@ impl UpdateProcessor {
         for (i, chunk) in chunks.iter().enumerate() {
             if i == chunks.len() - 1 {
                 self.api
-                    .send_message_with_buttons(self.chat.id, chunk, rows.clone())
+                    .send_message_with_buttons(self.chat.id, chunk, rows.clone(), parse_mode)
                     .await?;
             } else {
                 // Otherwise, send a regular message

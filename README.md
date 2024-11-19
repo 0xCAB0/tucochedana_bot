@@ -31,7 +31,6 @@
 start - Despliega el menú de opciones y el mensaje de bienvenida
 add_vehicle_message - Registra la matrícula del vehículo que buscas
 get_my_vehicles - Devuelve el listado de vehículos que has registrado
-get_my_vehicles - Devuelve el listado de vehículos que has registrado
 start_fetch - Activa la búsqueda de los vehículos guardados
 stop_fetch - Desactiva la búsqueda de los vehículos guardados
 help - Muestra un mensaje de ayuda sobre cómo usar el bot
