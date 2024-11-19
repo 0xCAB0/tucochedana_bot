@@ -69,7 +69,7 @@ jobs:
       - name: Setup db
         env:
           DATABASE_URL: "postgres://postgres:postgres@localhost/tu-coche-dana-bot"
-        run: diesel setup
+        run: diesel migration run --migration-dir testing-migrations
 
       - name: Run tests
         env:

@@ -3,7 +3,7 @@ UPDATE chats
 SET
     subscribed_vehicles = CONCAT(
         subscribed_vehicles,
-        $2::text || ', '
+        $1 || ','
     )
 WHERE
-    id = $1;
+    id = $2;

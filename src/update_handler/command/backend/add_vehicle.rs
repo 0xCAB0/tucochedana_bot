@@ -7,8 +7,23 @@ use crate::{
 };
 
 impl UpdateProcessor {
+    fn sanitize_input(input: &str) -> Option<String> {
+        if input.contains(',') {
+            return None;
+        }
+
+        Some(String::from(input))
+    }
+
     pub async fn add_vehicle(&self) -> Result<TaskToManage, BotError> {
-        let plate = String::from(&self.text);
+        let Some(plate) = Self::sanitize_input(&self.text) else {
+            self.add_vehicle_prompt(Some(
+                "La matrícula introducida sigue un formato incorrecto, pruebe de nuevo",
+            ))
+            .await?;
+            return Ok(TaskToManage::NoTask);
+        };
+        log::info!("Adding vehicle {plate}");
         let client = TuCocheDanaClient::new(None).await;
 
         let found_at = client.is_vehicle_found(&plate).await.ok();
@@ -58,15 +73,79 @@ impl UpdateProcessor {
     }
 }
 
-// #[cfg(test)]
-// mod add_vehicle_tests {
-//     use crate::{
-//         db::{model::chat::Chat, repo, Repo},
-//         test,
-//     };
+#[cfg(test)]
+mod add_vehicle_tests {
+    use std::sync::Arc;
 
-//     use super::*;
+    use frankenstein::{Chat, Message, Update, UpdateContent, User};
+    use tokio::sync::Mutex;
 
-//     #[tokio::test]
-//     async fn test_add_vehicle() {}
-// }
+    use crate::db::{
+        model::{self},
+        Repo,
+    };
+
+    use super::*;
+
+    #[ignore = "Unestable"]
+    #[tokio::test]
+    async fn test_add_vehicle() {
+        dotenvy::dotenv().ok();
+        pretty_env_logger::init();
+
+        let repo = Repo::repo().await.unwrap();
+        let test_queue = Repo::create_testing_queue(repo, true).await.unwrap();
+
+        let plate = "NUEVA789";
+
+        let db_chat = repo.get_testing_chat().await.unwrap();
+
+        repo.modify_state(&db_chat.id, model::client_state::ClientState::AddVehicle)
+            .await
+            .unwrap();
+
+        let chat: Chat = Chat::builder()
+            .id(db_chat.user_id as i64)
+            .type_field(frankenstein::ChatType::Private)
+            .username("Test".to_string())
+            .first_name("Test".to_string())
+            .last_name("Test Lastname".to_string())
+            .build();
+
+        let from = User::builder()
+            .id(db_chat.user_id)
+            .is_bot(false)
+            .username(db_chat.username)
+            .first_name("Test".to_string())
+            .last_name("Test Lastname".to_string())
+            .build();
+        let message: Message = Message::builder()
+            .message_id(1365)
+            .date(crate::db::repo::db_tests::random_datetime().timestamp() as u64)
+            .chat(chat)
+            .from(from)
+            .text(plate)
+            .build();
+
+        let content: UpdateContent = UpdateContent::Message(message);
+        let update: Update = Update::builder().update_id(10000).content(content).build();
+
+        match UpdateProcessor::run(&update, Arc::new(Mutex::new(test_queue))).await {
+            Ok(processor) => {
+                log::info!("{:#?}", processor);
+            }
+            Err(BotError::TelegramError(_)) => {}
+            Err(err) => {
+                log::error!("{:#?}", err);
+                panic!()
+            }
+        };
+
+        let db_chat = repo.get_chat(&db_chat.id).await.unwrap();
+
+        assert_eq!(db_chat.state, model::client_state::ClientState::Initial);
+        assert!(db_chat.subscribed_vehicles.is_some_and(|subs| subs
+            .split(',')
+            .any(|subbed_vehicle| subbed_vehicle == plate)));
+    }
+}

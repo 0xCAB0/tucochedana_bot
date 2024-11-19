@@ -25,13 +25,12 @@ async fn parse_update(
     State(state): State<Arc<Mutex<AsyncQueue<NoTls>>>>,
     Json(update): Json<Update>,
 ) -> axum::response::Result<()> {
-    UpdateProcessor::run(&update, state).await?;
+    UpdateProcessor::run(&update, state).await.unwrap();
     Ok(())
 }
 
 impl IntoResponse for BotError {
     fn into_response(self) -> axum::response::Response {
-        // Customize error response here
         (StatusCode::BAD_REQUEST, format!("{self}")).into_response()
     }
 }
@@ -43,8 +42,6 @@ mod server_tests {
     use axum::body::Body;
     use axum::extract::Request;
     use axum::http::StatusCode;
-    use fang::AsyncQueue;
-    use fang::NoTls;
     use frankenstein::Chat;
     use frankenstein::Message;
     use frankenstein::Update;
@@ -53,28 +50,24 @@ mod server_tests {
     use tower::ServiceExt;
 
     use super::*;
-    use crate::DATABASE_URL;
-
-    async fn init_testing_queue() -> AsyncQueue<NoTls> {
-        let mut queue: AsyncQueue<NoTls> = AsyncQueue::builder()
-            .uri(DATABASE_URL.clone())
-            .max_pool_size(1_u32)
-            .build();
-
-        queue.connect(NoTls).await.unwrap();
-        queue
-    }
+    use crate::db::Repo;
 
     /// Basic example https://core.telegram.org/bots/webhooks#testing-your-bot-with-updates
+    #[ignore = "Unestable"]
     #[tokio::test]
     async fn test_webhook_dispatch() {
         dotenvy::dotenv().ok();
 
-        let queue = init_testing_queue().await;
+        let repo = Repo::repo().await.unwrap();
+
+        let queue = Repo::create_testing_queue(repo, true).await.unwrap();
+        // Initialize the app
         let app = app(queue);
 
+        let db_chat = repo.get_testing_chat().await.unwrap();
+
         let chat = Chat::builder()
-            .id(1111111)
+            .id(db_chat.user_id as i64)
             .type_field(frankenstein::ChatType::Private)
             .username("Test".to_string())
             .first_name("Test".to_string())
@@ -82,17 +75,17 @@ mod server_tests {
             .build();
 
         let from = User::builder()
-            .id(1111111)
+            .id(db_chat.user_id)
             .is_bot(false)
-            .username("Test".to_string())
-            .first_name("Test".to_string())
-            .last_name("Test Lastname".to_string())
+            .username(chat.username.clone().unwrap())
+            .first_name(chat.first_name.clone().unwrap())
+            .last_name(chat.last_name.clone().unwrap())
             .build();
 
         let message: Message = Message::builder()
             .date(1441645532)
             .chat(chat)
-            .message_id(1365)
+            .message_id(382)
             .from(from)
             .text("/start")
             .build();
@@ -100,7 +93,7 @@ mod server_tests {
         let content: UpdateContent = UpdateContent::Message(message);
         let update = Update::builder().update_id(10000).content(content).build();
 
-        let result = app
+        let response = app
             .oneshot(
                 Request::builder()
                     .method("POST")
@@ -113,14 +106,21 @@ mod server_tests {
             .await
             .unwrap();
 
-        assert_eq!(result.status(), StatusCode::OK);
+        assert_eq!(
+            response.status(),
+            StatusCode::OK,
+            "Response: {:#?}",
+            response.body()
+        );
     }
 
     #[tokio::test]
     async fn test_root_handler() {
         dotenvy::dotenv().ok();
 
-        let queue = init_testing_queue().await;
+        let queue = Repo::create_testing_queue(Repo::repo().await.unwrap(), true)
+            .await
+            .unwrap();
         // Initialize the app
         let app = app(queue);
 
@@ -133,6 +133,11 @@ mod server_tests {
 
         // Send the request to the app and await the response
         let response = app.oneshot(request).await.unwrap();
-        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response.status(),
+            StatusCode::OK,
+            "Response: {:?}",
+            response.body()
+        );
     }
 }

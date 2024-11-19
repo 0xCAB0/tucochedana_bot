@@ -52,7 +52,7 @@ mod tu_coche_dana_client_tests {
         let client = TuCocheDanaClient::new(Some(server.url())).await;
         let result = client.is_vehicle_found("ABC123").await;
 
-        eprintln!("{:#?}", result);
+        log::error!("{:#?}", result);
         assert!(result.is_ok());
     }
 
