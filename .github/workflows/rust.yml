@@ -6,6 +6,7 @@ on:
       - 'src/**/*'         
       - 'Cargo.toml'     
       - 'Cargo.lock'
+      - '.github/**/*'    
   push:
     branches:
       - main
@@ -69,7 +70,7 @@ jobs:
       - name: Setup db
         env:
           DATABASE_URL: "postgres://postgres:postgres@localhost/tu-coche-dana-bot"
-        run: diesel migration run --migration-dir testing-migrations
+        run: diesel setup
 
       - name: Run tests
         env:
