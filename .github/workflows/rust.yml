@@ -68,6 +68,8 @@ jobs:
           args: diesel_cli --no-default-features --features "postgres"
 
       - name: Setup db
+        env:
+          DATABASE_URL: "postgres://postgres:postgres@postgres/tu-coche-dana-bot"
         run: diesel migration run --migration-dir testing-migrations
 
       - name: Run tests
