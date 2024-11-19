@@ -6,6 +6,7 @@ on:
       - 'src/**/*'         
       - 'Cargo.toml'     
       - 'Cargo.lock'
+      - '.github/**/*'    
   push:
     branches:
       - main
