@@ -15,7 +15,13 @@ impl UpdateProcessor {
         let rows = Self::texts_to_buttons(rows, false);
 
         self.api
-            .edit_or_send_message(self.chat.id, self.message_id, HELP_TEXT, rows)
+            .edit_or_send_message_with_parse_mode(
+                self.chat.id,
+                self.message_id,
+                HELP_TEXT,
+                rows,
+                frankenstein::ParseMode::MarkdownV2,
+            )
             .await?;
         Ok(())
     }

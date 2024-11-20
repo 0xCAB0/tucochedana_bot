@@ -181,12 +181,45 @@ impl ApiClient {
     ) -> Result<(), ApiError> {
         //1. try editing
         if self
-            .edit_message(chat_id, message_id, text, inline_keyboard.clone())
+            .edit_message(
+                chat_id,
+                message_id,
+                text,
+                ParseMode::Html,
+                inline_keyboard.clone(),
+            )
             .await
             .is_err()
         {
             // on failure -> Send message
-            self.send_message_with_buttons(chat_id, text, inline_keyboard)
+            self.send_message_with_buttons(chat_id, text, inline_keyboard, ParseMode::Html)
+                .await?;
+        }
+
+        Ok(())
+    }
+    pub async fn edit_or_send_message_with_parse_mode(
+        &self,
+        chat_id: i64,
+        message_id: i32,
+        text: &str,
+        inline_keyboard: InlineKeyboardMarkup,
+        parse_mode: ParseMode,
+    ) -> Result<(), ApiError> {
+        //1. try editing
+        if self
+            .edit_message(
+                chat_id,
+                message_id,
+                text,
+                parse_mode,
+                inline_keyboard.clone(),
+            )
+            .await
+            .is_err()
+        {
+            // on failure -> Send message
+            self.send_message_with_buttons(chat_id, text, inline_keyboard, parse_mode)
                 .await?;
         }
 
@@ -198,12 +231,13 @@ impl ApiClient {
         chat_id: i64,
         text: &str,
         inline_keyboard: InlineKeyboardMarkup,
+        parse_mode: ParseMode,
     ) -> Result<MethodResponse<Message>, ApiError> {
         let message_params = SendMessageParams::builder()
             .chat_id(chat_id)
             .text(text)
             .reply_markup(ReplyMarkup::InlineKeyboardMarkup(inline_keyboard))
-            .parse_mode(ParseMode::Html)
+            .parse_mode(parse_mode)
             .build();
 
         Ok(self.telegram_client.send_message(&message_params).await?)
@@ -298,13 +332,14 @@ impl ApiClient {
         chat_id: i64,
         message_id: i32,
         text: &str,
+        parse_mode: ParseMode,
         inline_keyboard: InlineKeyboardMarkup,
     ) -> Result<MethodResponse<MessageOrBool>, ApiError> {
         let edit_text = EditMessageTextParams::builder()
             .chat_id(chat_id)
             .message_id(message_id)
             .text(text)
-            .parse_mode(ParseMode::Html)
+            .parse_mode(parse_mode)
             .build();
 
         let edit_keyboard = EditMessageReplyMarkupParams::builder()
