@@ -34,7 +34,7 @@ impl UpdateProcessor {
                 }
             }
 
-            Err(BotDbError::CouldNotEndSubscription(_, _, reason)) => {
+            Err(BotDbError::SubscriptionError(_, _, reason)) => {
                 self.get_vehicles(Some(&reason)).await?;
                 Ok(TaskToManage::NoTask)
             }

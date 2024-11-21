@@ -371,17 +371,23 @@ impl Repo {
     ) -> Result<(), BotDbError> {
         let connection = self.pool.get().await?;
 
-        match connection
+        connection
             .execute(CONCAT_VEHICLE_TO_SUBSCRIPTIONS, &[&plate, &chat_id])
-            .await
-        {
-            Ok(n) if n > 0 => Ok(()),
-            Ok(_) => Err(BotDbError::AlreadySubscribedError(
-                *chat_id,
-                plate.to_string(),
-            )),
-            Err(err) => Err(BotDbError::PgError(err)),
-        }
+            .await?;
+
+        Ok(())
+
+        // match connection
+        //     .execute(CONCAT_VEHICLE_TO_SUBSCRIPTIONS, &[&plate, &chat_id])
+        //     .await
+        // {
+        //     Ok(n) if n > 0 => Ok(()),
+        //     Ok(_) => Err(BotDbError::AlreadySubscribedError(
+        //         *chat_id,
+        //         plate.to_string(),
+        //     )),
+        //     Err(err) => Err(BotDbError::PgError(err)),
+        // }
     }
 
     pub async fn create_subscription(&self, plate: &str, chat_id: i64) -> Result<(), BotDbError> {
@@ -392,10 +398,11 @@ impl Repo {
                 .map(str::trim)
                 .any(|subscribed_id| subscribed_id == chat_id.to_string())
         }) {
-            return Err(BotDbError::AlreadySubscribedError(
-                chat_id,
-                plate.to_string(),
-            ));
+            // return Err(BotDbError::AlreadySubscribedError(
+            //     chat_id,
+            //     plate.to_string(),
+            // ));
+            return Ok(());
         }
 
         let mut connection = self.pool.get().await?;
@@ -413,11 +420,11 @@ impl Repo {
             transaction.commit().await?;
             Ok(())
         } else {
-            log::error!("{n1} != {n2}");
             transaction.rollback().await?;
-            Err(BotDbError::AlreadySubscribedError(
+            Err(BotDbError::SubscriptionError(
                 chat_id,
                 plate.to_string(),
+                format!(" Create subscription ->{n1} != {n2}"),
             ))
         }
     }
@@ -439,11 +446,11 @@ impl Repo {
 
         if n_subscribers == 0 || n_subscriptions == 0 {
             let reason = if n_subscribers == 0 {
-                format!("The vehicle {plate} doesn't have any subscribers")
+                format!("End Subscription -> The vehicle {plate} doesn't have any subscribers")
             } else {
-                format!("User {chat_id} doesn't have any subscription at the moment")
+                format!("End Subscription -> User {chat_id} doesn't have any subscription at the moment")
             };
-            return Err(BotDbError::CouldNotEndSubscription(
+            return Err(BotDbError::SubscriptionError(
                 chat_id,
                 plate.to_string(),
                 reason,
@@ -463,10 +470,10 @@ impl Repo {
 
         if n != n1 {
             transaction.rollback().await?;
-            return Err(BotDbError::CouldNotEndSubscription(
+            return Err(BotDbError::SubscriptionError(
                 chat_id,
                 plate.to_string(),
-                "Update query failed".to_string(),
+                format!("End Subscription -> Update query failed: {} != {}", n, n1),
             ));
         }
 

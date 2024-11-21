@@ -1,8 +1,10 @@
-SELECT plate, COALESCE(
-        array_length(
-            string_to_array(subscribers_ids, ','), 1
-        ), 0
-    ) AS subscriber_count
-FROM vehicles
+SELECT v.plate, COALESCE(COUNT(DISTINCT c.id), 0) AS subscriber_count
+FROM vehicles v
+    LEFT JOIN chats c ON TRIM(cast(c.id AS TEXT)) = ANY (
+        string_to_array(TRIM(v.subscribers_ids), ',')
+    )
 WHERE
-    plate = $1;
+    v.plate = $1
+    AND c.active = true
+GROUP BY
+    v.plate;
