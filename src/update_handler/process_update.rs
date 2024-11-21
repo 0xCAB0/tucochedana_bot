@@ -252,7 +252,9 @@ impl UpdateProcessor {
         subscriptions.pop();
 
         for plate in subscriptions.split(',').map(str::trim) {
-            if repo.get_n_subscribers_by_plate(plate).await? == 1 {
+            log::info!("Attempting to remove plate {plate}");
+            if repo.get_n_subscribers_by_plate(plate).await? == 0 {
+                log::info!("Removing plate {plate}");
                 repo.delete_tasks_by_plate(plate).await?;
             }
         }
