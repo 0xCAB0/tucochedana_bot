@@ -69,7 +69,8 @@ impl AsyncRunnable for FetchTask {
     }
 
     fn cron(&self) -> Option<Scheduled> {
-        let expression = format!("*/{} * * * *", *FETCH_IN_MINUTES);
+        let expression = format!("0 */{} * * * *", *FETCH_IN_MINUTES);
+        log::info!("{}", expression);
         Some(Scheduled::CronPattern(expression))
     }
 
